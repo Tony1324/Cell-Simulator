@@ -4,8 +4,8 @@ let cells = [];
 
 let centerX, centerY, largeRadius, smallRadius;
 
-let lateralPartitions = 2;
-let verticalPartitions = 3;
+let horizontalPartitions = 2;
+let lateralPartitions = 4;
 
 class Node {
     constructor(x, y, type) {
@@ -27,7 +27,7 @@ class Node {
     }
     
     mousePressed() {
-        if (dist(mouseX, mouseY, this.x, this.y) < 10) {
+        if (dist(mouseX-width/2, mouseY-height/2, this.x, this.y) < 10) {
             this.dragged = true;
         }
     }
@@ -39,14 +39,14 @@ class Node {
     updatePosition() {
         if (!this.dragged) return;
         
-        let d = dist(mouseX, mouseY, centerX, centerY);
+        let d = dist(mouseX-width/2, mouseY-height/2, centerX, centerY);
         if(d > largeRadius) {
-            let a = atan2(mouseY - centerY, mouseX - centerX);
+            let a = atan2(mouseY-height/2 - centerY, mouseX-width/2 - centerX);
             this.x = centerX + largeRadius * cos(a);
             this.y = centerY + largeRadius * sin(a);
         } else {
-            this.x = mouseX;
-            this.y = mouseY;
+            this.x = mouseX-width/2;
+            this.y = mouseY-height/2;
         }
     }
 }
@@ -79,6 +79,8 @@ class Cell {
     
     draw() {
         // now we can draw the cell as a polygon
+        fill(255, 165, 0)
+        strokeWeight(1);
         beginShape();
         this.nodes.forEach(node => vertex(node.x, node.y));
         endShape(CLOSE);
@@ -93,19 +95,11 @@ function createEdges(nodes, ...edgeParams){
     return edges
 }
 
-function setup() {
-    createCanvas(800, 800);
-    
-    centerX = width / 2;
-    centerY = height / 2;
-    
-    largeRadius = min(width, height) * 0.4;
-    smallRadius = largeRadius * 0.7;
-    
-    let sectors = 80;
+
+function buildEmbryo(centerX, centerY, lateralPartitions, horizontalPartitions, sectors, offset, largeRadius, smallRadius){
+
     let angle = TWO_PI / sectors;
-    let offsetLimit = angle / 4;
-    
+    let offsetLimit = angle / offset;
     let firstLargeNode = null;
     let firstSmallNode = null;
     let firstVerticalEdges = null;
@@ -127,8 +121,8 @@ function setup() {
         let ptSmall = new Node(xSmall, ySmall, "innerVertex");
         
         let verticalNodes = []
-        for(let j = 0; j <= verticalPartitions; j++) {
-            let t = j / verticalPartitions;
+        for(let j = 0; j <= lateralPartitions; j++) {
+            let t = j / lateralPartitions;
             let xMid = lerp(xLarge, xSmall, t);
             let yMid = lerp(yLarge, ySmall, t);
             let ptMid = new Node(xMid, yMid, "verticalNode");
@@ -144,8 +138,8 @@ function setup() {
             // APICAL EDGES
             let apicalNodes = [previousLargeNode]
             
-            for(let j = 1; j < lateralPartitions; j++) {
-                let t = j / (lateralPartitions);
+            for(let j = 1; j < horizontalPartitions; j++) {
+                let t = j / (horizontalPartitions);
                 let xMid = lerp(previousLargeNode.x, ptLarge.x, t);
                 let yMid = lerp(previousLargeNode.y, ptLarge.y, t);
                 let ptMid = new Node(xMid, yMid, "outerRingLateralNode");
@@ -162,8 +156,8 @@ function setup() {
 
             let basalNodes = [previousSmallNode]
             
-            for(let j = 1; j < lateralPartitions; j++) {
-                let t = j / (lateralPartitions);
+            for(let j = 1; j < horizontalPartitions; j++) {
+                let t = j / (horizontalPartitions);
                 let xMid = lerp(previousSmallNode.x, ptSmall.x, t);
                 let yMid = lerp(previousSmallNode.y, ptSmall.y, t);
                 let ptMid = new Node(xMid, yMid, "innerRingLateralNode");
@@ -199,8 +193,8 @@ function setup() {
     if (firstLargeNode !== null && previousLargeNode !== null) {
         let apicalNodes = [previousLargeNode]
         
-        for(let j = 1; j < lateralPartitions; j++) {
-            let t = j / (lateralPartitions);
+        for(let j = 1; j < horizontalPartitions; j++) {
+            let t = j / (horizontalPartitions);
             let xMid = lerp(previousLargeNode.x, firstLargeNode.x, t);
             let yMid = lerp(previousLargeNode.y, firstLargeNode.y, t);
             let ptMid = new Node(xMid, yMid, "outerRingLateralNode");
@@ -218,8 +212,8 @@ function setup() {
         
         let basalNodes = [previousSmallNode]
         
-        for(let j = 1; j < lateralPartitions; j++) {
-            let t = j / (lateralPartitions);
+        for(let j = 1; j < horizontalPartitions; j++) {
+            let t = j / (horizontalPartitions);
             let xMid = lerp(previousSmallNode.x, firstSmallNode.x, t);
             let yMid = lerp(previousSmallNode.y, firstSmallNode.y, t);
             let ptMid = new Node(xMid, yMid, "innerRingLateralNode");
@@ -236,10 +230,27 @@ function setup() {
         let cell = new Cell([previousVerticalEdges, basalEdges, firstVerticalEdges.slice().reverse(), apicalEdges.slice().reverse()].flat(), [previousVerticalEdges.map(e => e.nodeA),basalEdges.map(e => e.nodeA),firstVerticalEdges.slice().reverse().map(e => e.nodeB), apicalEdges.slice().reverse().map(e => e.nodeB)].flat())
         cells.push(cell)
     }
+    return {nodes, edges, cells}
+}
+
+function setup() {
+    createCanvas(800, 800);
+    
+    centerX = 0;
+    centerY = 0;
+    
+    largeRadius = min(width, height) * 0.4;
+    smallRadius = largeRadius * 0.7;
+    
+    let sectors = 80;
+
+
+    buildEmbryo(centerX, centerY, lateralPartitions, horizontalPartitions, sectors, 4, largeRadius, smallRadius)
 }
 
 
 function draw() {
+    translate(width/2, height/2)
     background(255);
     
     stroke(0);
@@ -247,6 +258,10 @@ function draw() {
     noFill();
     ellipse(centerX, centerY, largeRadius * 2);
     
+    for(let cell of cells) {
+        cell.draw()
+    }
+
     for(let edge of edges) {
         edge.draw(); 
     }
@@ -256,9 +271,6 @@ function draw() {
         node.draw();
     }
 
-    for(let cell of cells) {
-        cell.draw()
-    }
     
 }
 
@@ -269,7 +281,7 @@ function mousePressed() {
     
     
     for(let node of nodes) {
-        let d = dist(mouseX, mouseY, node.x, node.y);
+        let d = dist(mouseX-width/2, mouseY-height/2, node.x, node.y);
         if (d < 10 && d < nearestDistance) {
             nearestDistance = d;
             nearestNode = node;
