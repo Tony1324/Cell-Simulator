@@ -15,11 +15,17 @@ class Node {
         this.edges = [];
         this.cells = []; // Add cells property here
         this.dragged = false;
+        this.velocity = createVector(0,0);
+        this.force = createVector(0,0);
     }
     addCell(cell) {
         this.cells.push(cell);
     }
     
+    addForce(f){
+        this.force.add(f)
+    }
+
     draw() {
         fill(0);
         noStroke();
@@ -35,8 +41,18 @@ class Node {
     mouseReleased() {
         this.dragged = false;
     }
+
+    move(){
+        this.velocity.add(this.force);
+        
+        this.pos.add(this.velocity) 
+        this.force.mult(0)
+        this.velocity.mult(0.1);
+    }
     
     updatePosition() {
+       
+
         if (!this.dragged) return;
         
         let d = dist(mouseX-width/2, mouseY-height/2, center.x, center.y);
@@ -48,6 +64,7 @@ class Node {
             this.pos.x = mouseX-width/2;
             this.pos.y = mouseY-height/2;
         }
+
     }
 }
 
@@ -56,7 +73,25 @@ class Edge {
         this.nodeA = nodeA;
         this.nodeB = nodeB;
         this.type = type;
+        this.idealLength = this.getLength()
     }
+
+    calcForces(){
+        this.springForce()
+    }
+
+    springForce(){
+        const diff = this.getLength()-this.idealLength
+        const springConstant = 0.2
+        let dir = p5.Vector.sub(this.nodeB.pos, this.nodeA.pos).normalize().mult(diff*springConstant)
+        this.nodeA.addForce(dir)
+        this.nodeB.addForce(dir.mult(-1))
+    }
+
+    getLength(){
+        return p5.Vector.dist(this.nodeA.pos, this.nodeB.pos)
+    }
+
     
     draw() {
         stroke(0);
@@ -244,6 +279,12 @@ function setup() {
     nodes = embryo.nodes
     edges = embryo.edges
     cells = embryo.cells
+    // let nodeA = new Node(createVector(-20,0))
+    // let nodeB = new Node(createVector(20,0))
+    // let edge = new Edge(nodeA, nodeB)
+    // nodes.push(nodeA)
+    // nodes.push(nodeB)
+    // edges.push(edge)
 }
 
 
@@ -262,9 +303,11 @@ function draw() {
 
     for(let edge of edges) {
         edge.draw(); 
+        edge.calcForces();
     }
     
     for(let node of nodes) {
+        node.move();
         node.updatePosition();
         node.draw();
     }
