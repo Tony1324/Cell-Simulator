@@ -2,15 +2,15 @@ let edges = [];
 let nodes = [];
 let cells = [];
 
-let centerX, centerY, largeRadius, smallRadius;
+let largeRadius, smallRadius;
+let center 
 
 let horizontalPartitions = 2;
 let lateralPartitions = 4;
 
 class Node {
-    constructor(x, y, type) {
-        this.x = x;
-        this.y = y;
+    constructor(pos, type) {
+        this.pos = pos
         this.type = type;
         this.edges = [];
         this.cells = []; // Add cells property here
@@ -23,11 +23,11 @@ class Node {
     draw() {
         fill(0);
         noStroke();
-        ellipse(this.x, this.y, 5, 5);
+        ellipse(this.pos.x, this.pos.y, 5, 5);
     }
     
     mousePressed() {
-        if (dist(mouseX-width/2, mouseY-height/2, this.x, this.y) < 10) {
+        if (dist(mouseX-width/2, mouseY-height/2, this.pos.x, this.pos.y) < 10) {
             this.dragged = true;
         }
     }
@@ -39,14 +39,14 @@ class Node {
     updatePosition() {
         if (!this.dragged) return;
         
-        let d = dist(mouseX-width/2, mouseY-height/2, centerX, centerY);
+        let d = dist(mouseX-width/2, mouseY-height/2, center.x, center.y);
         if(d > largeRadius) {
-            let a = atan2(mouseY-height/2 - centerY, mouseX-width/2 - centerX);
-            this.x = centerX + largeRadius * cos(a);
-            this.y = centerY + largeRadius * sin(a);
+            let a = atan2(mouseY-height/2 - centerY, mouseX-width/2 - center.x);
+            this.pos.x = centerX + largeRadius * cos(a);
+            this.pos.y = centerY + largeRadius * sin(a);
         } else {
-            this.x = mouseX-width/2;
-            this.y = mouseY-height/2;
+            this.pos.x = mouseX-width/2;
+            this.pos.y = mouseY-height/2;
         }
     }
 }
@@ -61,7 +61,7 @@ class Edge {
     draw() {
         stroke(0);
         strokeWeight(1);
-        line(this.nodeA.x, this.nodeA.y, this.nodeB.x, this.nodeB.y);
+        line(this.nodeA.pos.x, this.nodeA.pos.y, this.nodeB.pos.x, this.nodeB.pos.y);
     }
 }
 
@@ -72,9 +72,8 @@ class Cell {
     }
     
     getCenter() {
-        let sumX = this.nodes.reduce((total, node) => total + node.x, 0);
-        let sumY = this.nodes.reduce((total, node) => total + node.y, 0);
-        return {x: sumX / nodes.length, y: sumY / nodes.length};
+        let sum = this.nodes.reduce((total, node) => p5.Vector.add(total,node.pos), createVector(0,0));
+        return sum;
     }
     
     draw() {
@@ -82,7 +81,7 @@ class Cell {
         fill(255, 165, 0)
         strokeWeight(1);
         beginShape();
-        this.nodes.forEach(node => vertex(node.x, node.y));
+        this.nodes.forEach(node => vertex(node.pos.x, node.pos.y));
         endShape(CLOSE);
     }
 }
@@ -96,7 +95,10 @@ function createEdges(nodes, ...edgeParams){
 }
 
 
-function buildEmbryo(centerX, centerY, lateralPartitions, horizontalPartitions, sectors, offset, largeRadius, smallRadius){
+function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, offset, largeRadius, smallRadius){
+    let edges = [];
+    let nodes = [];
+    let cells = [];
 
     let angle = TWO_PI / sectors;
     let offsetLimit = angle / offset;
@@ -111,21 +113,18 @@ function buildEmbryo(centerX, centerY, lateralPartitions, horizontalPartitions, 
     for (let i = 0; i < sectors; i++) {
         let thetaLarge = i * angle + random(-offsetLimit, offsetLimit);
         let thetaSmall = i * angle + random(-offsetLimit, offsetLimit);
-        
-        let xLarge = centerX + largeRadius * cos(thetaLarge);
-        let yLarge = centerY + largeRadius * sin(thetaLarge);
-        let xSmall = centerX + smallRadius * cos(thetaSmall);
-        let ySmall = centerY + smallRadius * sin(thetaSmall);
-        
-        let ptLarge = new Node(xLarge, yLarge, "outerVertex");
-        let ptSmall = new Node(xSmall, ySmall, "innerVertex");
+
+        let vLarge = createVector(largeRadius, 0)
+        vLarge.rotate(thetaLarge)
+
+        let vSmall = createVector(smallRadius, 0)
+        vSmall.rotate(thetaSmall)
         
         let verticalNodes = []
         for(let j = 0; j <= lateralPartitions; j++) {
             let t = j / lateralPartitions;
-            let xMid = lerp(xLarge, xSmall, t);
-            let yMid = lerp(yLarge, ySmall, t);
-            let ptMid = new Node(xMid, yMid, "verticalNode");
+            let vMid = p5.Vector.lerp(vLarge, vSmall, t);
+            let ptMid = new Node(vMid, "verticalNode");
             verticalNodes.push(ptMid);
         }
         nodes = nodes.concat(verticalNodes)
@@ -140,9 +139,8 @@ function buildEmbryo(centerX, centerY, lateralPartitions, horizontalPartitions, 
             
             for(let j = 1; j < horizontalPartitions; j++) {
                 let t = j / (horizontalPartitions);
-                let xMid = lerp(previousLargeNode.x, ptLarge.x, t);
-                let yMid = lerp(previousLargeNode.y, ptLarge.y, t);
-                let ptMid = new Node(xMid, yMid, "outerRingLateralNode");
+                let vMid = p5.Vector.lerp(previousLargeNode.pos, vLarge, t);
+                let ptMid = new Node(vMid, "outerRingLateralNode");
                 apicalNodes.push(ptMid);
                 nodes.push(ptMid)
             }
@@ -158,9 +156,8 @@ function buildEmbryo(centerX, centerY, lateralPartitions, horizontalPartitions, 
             
             for(let j = 1; j < horizontalPartitions; j++) {
                 let t = j / (horizontalPartitions);
-                let xMid = lerp(previousSmallNode.x, ptSmall.x, t);
-                let yMid = lerp(previousSmallNode.y, ptSmall.y, t);
-                let ptMid = new Node(xMid, yMid, "innerRingLateralNode");
+                let vMid = p5.Vector.lerp(previousSmallNode.pos, vSmall, t);
+                let ptMid = new Node(vMid, "innerRingLateralNode");
                 basalNodes.push(ptMid);
                 nodes.push(ptMid)
             }
@@ -190,14 +187,14 @@ function buildEmbryo(centerX, centerY, lateralPartitions, horizontalPartitions, 
     }
     let apicalEdges
     // Connect the first and last edges
-    if (firstLargeNode !== null && previousLargeNode !== null) {
+    if (firstLargeNode && previousLargeNode) {
+
         let apicalNodes = [previousLargeNode]
         
         for(let j = 1; j < horizontalPartitions; j++) {
             let t = j / (horizontalPartitions);
-            let xMid = lerp(previousLargeNode.x, firstLargeNode.x, t);
-            let yMid = lerp(previousLargeNode.y, firstLargeNode.y, t);
-            let ptMid = new Node(xMid, yMid, "outerRingLateralNode");
+            let vMid = p5.Vector.lerp(previousLargeNode.pos, firstLargeNode.pos, t);
+            let ptMid = new Node(vMid, "outerRingLateralNode");
             apicalNodes.push(ptMid);
             nodes.push(ptMid);
         }
@@ -208,15 +205,14 @@ function buildEmbryo(centerX, centerY, lateralPartitions, horizontalPartitions, 
         
     }
     let basalEdges 
-    if (firstSmallNode !== null && previousSmallNode !== null) {
+    if (firstSmallNode && previousSmallNode) {
         
         let basalNodes = [previousSmallNode]
         
         for(let j = 1; j < horizontalPartitions; j++) {
             let t = j / (horizontalPartitions);
-            let xMid = lerp(previousSmallNode.x, firstSmallNode.x, t);
-            let yMid = lerp(previousSmallNode.y, firstSmallNode.y, t);
-            let ptMid = new Node(xMid, yMid, "innerRingLateralNode");
+            let vMid = p5.Vector.lerp(previousSmallNode.pos, firstSmallNode.pos, t);
+            let ptMid = new Node(vMid, "innerRingLateralNode");
             basalNodes.push(ptMid);
             nodes.push(ptMid)
         }
@@ -226,18 +222,17 @@ function buildEmbryo(centerX, centerY, lateralPartitions, horizontalPartitions, 
         edges = edges.concat(basalEdges);
     }
 
-    if(firstVerticalEdges !== null && previousVerticalEdges !==null){
+    if(firstVerticalEdges && previousVerticalEdges && basalEdges && apicalEdges){
         let cell = new Cell([previousVerticalEdges, basalEdges, firstVerticalEdges.slice().reverse(), apicalEdges.slice().reverse()].flat(), [previousVerticalEdges.map(e => e.nodeA),basalEdges.map(e => e.nodeA),firstVerticalEdges.slice().reverse().map(e => e.nodeB), apicalEdges.slice().reverse().map(e => e.nodeB)].flat())
         cells.push(cell)
     }
-    return {nodes, edges, cells}
+    return ({nodes: nodes, edges:edges, cells:cells})
 }
 
 function setup() {
     createCanvas(800, 800);
     
-    centerX = 0;
-    centerY = 0;
+    center = createVector(0,0)
     
     largeRadius = min(width, height) * 0.4;
     smallRadius = largeRadius * 0.7;
@@ -245,18 +240,21 @@ function setup() {
     let sectors = 80;
 
 
-    buildEmbryo(centerX, centerY, lateralPartitions, horizontalPartitions, sectors, 4, largeRadius, smallRadius)
+    const embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 4, largeRadius, smallRadius);
+    nodes = embryo.nodes
+    edges = embryo.edges
+    cells = embryo.cells
 }
 
 
 function draw() {
-    translate(width/2, height/2)
+    translate(width/2, height/2);
     background(255);
     
     stroke(0);
     strokeWeight(3);
     noFill();
-    ellipse(centerX, centerY, largeRadius * 2);
+    ellipse(center.x, center.y, largeRadius * 2);
     
     for(let cell of cells) {
         cell.draw()
@@ -281,7 +279,7 @@ function mousePressed() {
     
     
     for(let node of nodes) {
-        let d = dist(mouseX-width/2, mouseY-height/2, node.x, node.y);
+        let d = dist(mouseX-width/2, mouseY-height/2, node.pos.x, node.pos.y);
         if (d < 10 && d < nearestDistance) {
             nearestDistance = d;
             nearestNode = node;
