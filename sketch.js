@@ -41,9 +41,9 @@ class Node {
         
         let d = dist(mouseX-width/2, mouseY-height/2, center.x, center.y);
         if(d > largeRadius) {
-            let a = atan2(mouseY-height/2 - centerY, mouseX-width/2 - center.x);
-            this.pos.x = centerX + largeRadius * cos(a);
-            this.pos.y = centerY + largeRadius * sin(a);
+            let a = atan2(mouseY-height/2 - center.y, mouseX-width/2 - center.x);
+            this.pos.x = center.x + largeRadius * cos(a);
+            this.pos.y = center.y + largeRadius * sin(a);
         } else {
             this.pos.x = mouseX-width/2;
             this.pos.y = mouseY-height/2;
