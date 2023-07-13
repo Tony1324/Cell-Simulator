@@ -119,6 +119,16 @@ class Cell {
         this.nodes.forEach(node => vertex(node.pos.x, node.pos.y));
         endShape(CLOSE);
     }
+    getArea() {
+        let area = 0;
+        for(let i = 0; i < this.nodes.length; i++){
+            let j = (i + 1) % this.nodes.length;
+            area += this.nodes[i].x * this.nodes[j].y;
+            area -= this.nodes[j].x * this.nodes[i].y;
+        }
+        area /= 2;
+        return abs(area);
+    }
 }
 
 function createEdges(nodes, ...edgeParams){
