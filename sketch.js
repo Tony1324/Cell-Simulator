@@ -5,8 +5,8 @@ let cells = [];
 let largeRadius, smallRadius;
 let center 
 
-let horizontalPartitions = 2;
-let lateralPartitions = 4;
+let horizontalPartitions = 1;
+let lateralPartitions = 5;
 
 class Node {
     constructor(pos, type) {
@@ -43,11 +43,11 @@ class Node {
     }
 
     move(){
+        this.force.limit(5)
         this.velocity.add(this.force);
-        
-        this.pos.add(this.velocity) 
+        this.pos.add(this.velocity); 
         this.force.mult(0)
-        this.velocity.mult(0.1);
+        this.velocity.mult(0)
     }
     
     updatePosition() {
@@ -79,10 +79,15 @@ class Edge {
     calcForces(){
         this.springForce()
     }
+    
+    addForce(f){
+        this.nodeA.addForce(f)
+        this.nodeB.addForce(f)
+    }
 
     springForce(){
         const diff = this.getLength()-this.idealLength
-        const springConstant = 0.2
+        const springConstant = 0.1
         let dir = p5.Vector.sub(this.nodeB.pos, this.nodeA.pos).normalize().mult(diff*springConstant)
         this.nodeA.addForce(dir)
         this.nodeB.addForce(dir.mult(-1))
@@ -92,7 +97,9 @@ class Edge {
         return p5.Vector.dist(this.nodeA.pos, this.nodeB.pos)
     }
 
-    
+    getNormal(){
+        return createVector(-(this.nodeB.pos.y-this.nodeA.pos.y), this.nodeB.pos.x-this.nodeA.pos.x).normalize()
+    }
     draw() {
         stroke(0);
         strokeWeight(1);
@@ -104,11 +111,70 @@ class Cell {
     constructor(edges, nodes) {
         this.edges = edges
         this.nodes = nodes
+        this.idealArea = this.getArea()
+        this.angles = []
+        for(let i = 0; i<this.nodes.length; i++){
+            this.angles.push(this.getAngle(i))
+        }
     }
     
     getCenter() {
         let sum = this.nodes.reduce((total, node) => p5.Vector.add(total,node.pos), createVector(0,0));
         return sum;
+    }
+    update(){
+        this.osmosisForce()
+        this.stiffness()
+    }
+    stiffness(){
+        const stiffnessConstant = 2
+        const mod = (n,m) => n - (m * Math.floor(n/m));
+        const length = this.nodes.length
+        for(let i = 0; i<length; i++){
+            const angle = this.getAngle(i)
+            const diff = mod((angle - this.angles[i] + PI), 2*PI) - PI
+    
+            const prev = this.nodes[mod(i-1, length)]
+            const node = this.nodes[mod(i, length)]
+            const next = this.nodes[mod(i+1, length)]
+            
+            const edge1 = this.edges[i]
+            const edge2 = this.edges[mod(i-1, length)]
+            
+            const norm1 = edge1.getNormal()
+            const norm2 = edge2.getNormal()
+            
+            norm1.mult(stiffnessConstant * diff / edge1.getLength())
+            norm2.mult(stiffnessConstant * diff / edge1.getLength())
+            
+            node.addForce(norm1)
+            node.addForce(norm2)
+            
+            prev.addForce(norm1.mult(1))
+            next.addForce(norm2.mult(-1))
+        }
+    }
+    getAngle(i){
+        const mod = (n,m) => n - (m * Math.floor(n/m));
+        const length = this.nodes.length
+        
+        const prev = this.nodes[mod(i-1, length)].pos
+        const node = this.nodes[mod(i, length)].pos
+        const next = this.nodes[mod(i+1, length)].pos
+        
+        const a = p5.Vector.sub(prev, node)
+        const b = p5.Vector.sub(next, node)
+        return Math.atan2(b.y, b.x) - Math.atan2(a.y, a.x)                    
+    }
+    osmosisForce(){
+        const area = this.getArea()
+        const diff = area - this.idealArea
+        const osmosisConstant = 0.00005
+        for(let edge of this.edges){
+            let normal = edge.getNormal()
+            normal.mult(diff*osmosisConstant*edge.getLength())
+            edge.addForce(normal)
+        }
     }
     
     draw() {
@@ -123,8 +189,8 @@ class Cell {
         let area = 0;
         for(let i = 0; i < this.nodes.length; i++){
             let j = (i + 1) % this.nodes.length;
-            area += this.nodes[i].x * this.nodes[j].y;
-            area -= this.nodes[j].x * this.nodes[i].y;
+            area += this.nodes[i].pos.x * this.nodes[j].pos.y;
+            area -= this.nodes[j].pos.x * this.nodes[i].pos.y;
         }
         area /= 2;
         return abs(area);
@@ -152,7 +218,7 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
     let firstVerticalEdges = null;
     let previousLargeNode = null;
     let previousSmallNode = null;
-    let previousVerticalEdges = null;
+    let previousVerticalNodes = null;
 
     
     for (let i = 0; i < sectors; i++) {
@@ -178,7 +244,10 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
         
         let apicalEdges, basalEdges
         // create lateral edges between consecutive large and small nodes
-        if (previousLargeNode != null && previousSmallNode != null && previousVerticalEdges != null) {
+        if (previousLargeNode != null && previousSmallNode != null && previousVerticalNodes != null) {
+            previousVerticalNodes.reverse()
+            let previousVerticalEdges = createEdges(previousVerticalNodes, "verticalNode")
+            
             // APICAL EDGES
             let apicalNodes = [previousLargeNode]
             
@@ -197,30 +266,30 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
 
             //BASAL EDGES
 
-            let basalNodes = [previousSmallNode]
+            let basalNodes = [verticalNodes[verticalNodes.length-1]]
             
             for(let j = 1; j < horizontalPartitions; j++) {
                 let t = j / (horizontalPartitions);
-                let vMid = p5.Vector.lerp(previousSmallNode.pos, vSmall, t);
+                let vMid = p5.Vector.lerp(vSmall,previousSmallNode.pos, t);
                 let ptMid = new Node(vMid, "innerRingLateralNode");
                 basalNodes.push(ptMid);
                 nodes.push(ptMid)
             }
             
-            basalNodes.push(verticalNodes[verticalNodes.length-1])
+            basalNodes.push(previousSmallNode)
             basalEdges = createEdges(basalNodes, "basalEdge")
             edges = edges.concat(basalEdges);
 
             //CELL CREATION
 
-            let cell = new Cell([previousVerticalEdges, basalEdges, verticalEdges.slice().reverse(), apicalEdges.slice().reverse()].flat(),[previousVerticalEdges.map(e => e.nodeA),basalEdges.map(e => e.nodeA),verticalEdges.slice().reverse().map(e => e.nodeB), apicalEdges.slice().reverse().map(e => e.nodeB)].flat())
+            let cell = new Cell([previousVerticalEdges, apicalEdges, verticalEdges, basalEdges].flat(),[previousVerticalEdges.map(e => e.nodeA),apicalEdges.map(e => e.nodeA),verticalEdges.map(e => e.nodeA), basalEdges.map(e => e.nodeA)].flat())
             cells.push(cell)
             
         }
         
         previousLargeNode = verticalNodes[0];
         previousSmallNode = verticalNodes[verticalNodes.length-1];
-        previousVerticalEdges = verticalEdges;
+        previousVerticalNodes = verticalNodes;
 
         
         
@@ -230,47 +299,41 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
             firstVerticalEdges = verticalEdges
         }
     }
-    let apicalEdges
+    
+    previousVerticalNodes.reverse()
+    let previousVerticalEdges = createEdges(previousVerticalNodes, "verticalNode")
+    
+    let apicalEdges, basalEdges
     // Connect the first and last edges
-    if (firstLargeNode && previousLargeNode) {
 
-        let apicalNodes = [previousLargeNode]
-        
-        for(let j = 1; j < horizontalPartitions; j++) {
-            let t = j / (horizontalPartitions);
-            let vMid = p5.Vector.lerp(previousLargeNode.pos, firstLargeNode.pos, t);
-            let ptMid = new Node(vMid, "outerRingLateralNode");
-            apicalNodes.push(ptMid);
-            nodes.push(ptMid);
-        }
-        apicalNodes.push(firstLargeNode)
-        
-        apicalEdges = createEdges(apicalNodes, "apicalEdge")
-        edges = edges.concat(apicalEdges);
-        
+    let apicalNodes = [previousLargeNode]
+    
+    for(let j = 1; j < horizontalPartitions; j++) {
+        let t = j / (horizontalPartitions);
+        let vMid = p5.Vector.lerp(previousLargeNode.pos, firstLargeNode.pos, t);
+        let ptMid = new Node(vMid, "outerRingLateralNode");
+        apicalNodes.push(ptMid);
+        nodes.push(ptMid);
     }
-    let basalEdges 
-    if (firstSmallNode && previousSmallNode) {
-        
-        let basalNodes = [previousSmallNode]
-        
-        for(let j = 1; j < horizontalPartitions; j++) {
-            let t = j / (horizontalPartitions);
-            let vMid = p5.Vector.lerp(previousSmallNode.pos, firstSmallNode.pos, t);
-            let ptMid = new Node(vMid, "innerRingLateralNode");
-            basalNodes.push(ptMid);
-            nodes.push(ptMid)
-        }
-        
-        basalNodes.push(firstSmallNode)
-        basalEdges = createEdges(basalNodes, "basalEdge")
-        edges = edges.concat(basalEdges);
+    apicalNodes.push(firstLargeNode)
+    apicalEdges = createEdges(apicalNodes, "apicalEdge")
+    edges = edges.concat(apicalEdges);
+    
+    let basalNodes = [firstSmallNode]
+    for(let j = 1; j < horizontalPartitions; j++) {
+        let t = j / (horizontalPartitions);
+        let vMid = p5.Vector.lerp(firstSmallNode.pos, previousSmallNode.pos, t);
+        let ptMid = new Node(vMid, "innerRingLateralNode");
+        basalNodes.push(ptMid);
+        nodes.push(ptMid)
     }
+    basalNodes.push(previousSmallNode)
+    basalEdges = createEdges(basalNodes, "basalEdge")
+    edges = edges.concat(basalEdges);
 
-    if(firstVerticalEdges && previousVerticalEdges && basalEdges && apicalEdges){
-        let cell = new Cell([previousVerticalEdges, basalEdges, firstVerticalEdges.slice().reverse(), apicalEdges.slice().reverse()].flat(), [previousVerticalEdges.map(e => e.nodeA),basalEdges.map(e => e.nodeA),firstVerticalEdges.slice().reverse().map(e => e.nodeB), apicalEdges.slice().reverse().map(e => e.nodeB)].flat())
-        cells.push(cell)
-    }
+    let cell = new Cell([previousVerticalEdges, apicalEdges, firstVerticalEdges, basalEdges].flat(), [previousVerticalEdges.map(e => e.nodeA),apicalEdges.map(e => e.nodeA),firstVerticalEdges.map(e => e.nodeA), basalEdges.map(e => e.nodeA)].flat())
+    cells.push(cell)
+    
     return ({nodes: nodes, edges:edges, cells:cells})
 }
 
@@ -284,17 +347,40 @@ function setup() {
     
     let sectors = 80;
 
-
+// 
     const embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 4, largeRadius, smallRadius);
     nodes = embryo.nodes
     edges = embryo.edges
     cells = embryo.cells
+    
     // let nodeA = new Node(createVector(-20,0))
     // let nodeB = new Node(createVector(20,0))
     // let edge = new Edge(nodeA, nodeB)
     // nodes.push(nodeA)
     // nodes.push(nodeB)
     // edges.push(edge)
+    // 
+    // let nodeA = new Node(createVector(-20, -20))
+    // let nodeB = new Node(createVector(20, -20))
+    // let nodeC = new Node(createVector(20, 20))
+    // let nodeD = new Node(createVector(-20, 20))
+    // let edgeA = new Edge(nodeA, nodeB)
+    // let edgeB = new Edge(nodeB, nodeC)
+    // let edgeC = new Edge(nodeC, nodeD)
+    // let edgeD = new Edge(nodeD, nodeA)
+    // let cell = new Cell([edgeA, edgeB, edgeC, edgeD], [nodeA, nodeB, nodeC, nodeD])
+    // 
+    // nodes.push(nodeA)
+    // nodes.push(nodeB)
+    // nodes.push(nodeC)
+    // nodes.push(nodeD)
+    // 
+    // edges.push(edgeA)
+    // edges.push(edgeB)
+    // edges.push(edgeC)
+    // edges.push(edgeD)
+    // 
+    // cells.push(cell)
 }
 
 
@@ -309,6 +395,7 @@ function draw() {
     
     for(let cell of cells) {
         cell.draw()
+        cell.update()
     }
 
     for(let edge of edges) {
