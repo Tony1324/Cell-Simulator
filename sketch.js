@@ -67,6 +67,20 @@ class Node {
 
     }
 }
+function angleBetweenEdges(edge1, edge2) {
+    // Get vectors representing the edges
+    let vector1 = p5.Vector.sub(edge1.nodeB.pos, edge1.nodeA.pos);
+    let vector2 = p5.Vector.sub(edge2.nodeB.pos, edge2.nodeA.pos);
+
+    // Normalize vectors
+    vector1.normalize();
+    vector2.normalize();
+
+    // Calculate the angle between the vectors using the dot product
+    let angle = Math.acos(vector1.dot(vector2));
+
+    return angle;
+}
 
 class Edge {
     constructor(nodeA, nodeB, type) {
