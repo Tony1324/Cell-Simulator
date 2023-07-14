@@ -5,7 +5,7 @@ let largeRadius, smallRadius;
 let center 
 
 let horizontalPartitions = 1;
-let lateralPartitions = 4;
+let lateralPartitions = 5;
 
 let mouse = new Vector(0,0)
 
@@ -136,7 +136,9 @@ function arrow(v1, v2) {
   }
 
 for(let i = 16; i < 24; i++){
-    cells[i].edges[4].idealLength=0;
+    for (let j = 0; j < horizontalPartitions; j++){
+        cells[i].edges[lateralPartitions + j].idealLength = 0;
+    }
     cells[i].color = "red"
 }
 
