@@ -6,7 +6,7 @@ let largeRadius, smallRadius;
 let center 
 
 let horizontalPartitions = 1;
-let lateralPartitions = 5;
+let lateralPartitions = 4;
 
 class Node {
     constructor(pos, type) {
@@ -130,6 +130,7 @@ class Cell {
         for(let i = 0; i<this.nodes.length; i++){
             this.angles.push(this.getAngle(i))
         }
+        console.log(this.angles)
     }
     
     getCenter() {
@@ -141,12 +142,13 @@ class Cell {
         this.stiffness()
     }
     stiffness(){
-        const stiffnessConstant = 2
+        const stiffnessConstant = 3
         const mod = (n,m) => n - (m * Math.floor(n/m));
         const length = this.nodes.length
         for(let i = 0; i<length; i++){
             const angle = this.getAngle(i)
-            const diff = mod((angle - this.angles[i] + PI), 2*PI) - PI
+            // const diff = mod((angle - this.angles[i] + PI), 2*PI) - PI
+            const diff = angle - this.angles[i]
     
             const prev = this.nodes[mod(i-1, length)]
             const node = this.nodes[mod(i, length)]
@@ -176,9 +178,14 @@ class Cell {
         const node = this.nodes[mod(i, length)].pos
         const next = this.nodes[mod(i+1, length)].pos
         
-        const a = p5.Vector.sub(prev, node)
-        const b = p5.Vector.sub(next, node)
-        return Math.atan2(b.y, b.x) - Math.atan2(a.y, a.x)                    
+        const a = p5.Vector.sub(prev, node).normalize()
+        const b = p5.Vector.sub(next, node).normalize()
+        
+        let angle = Math.atan2(a.cross(b).z, a.dot(b))  
+        if(angle < 0){
+            angle+=2*PI
+        }
+        return angle
     }
     osmosisForce(){
         const area = this.getArea()
@@ -194,7 +201,7 @@ class Cell {
     draw() {
         // now we can draw the cell as a polygon
         fill(255, 165, 0)
-        strokeWeight(1);
+        strokeWeight(0);
         beginShape();
         this.nodes.forEach(node => vertex(node.pos.x, node.pos.y));
         endShape(CLOSE);
@@ -361,19 +368,18 @@ function setup() {
     
     let sectors = 80;
 
-// 
     const embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 4, largeRadius, smallRadius);
     nodes = embryo.nodes
     edges = embryo.edges
     cells = embryo.cells
-    
+
     // let nodeA = new Node(createVector(-20,0))
     // let nodeB = new Node(createVector(20,0))
     // let edge = new Edge(nodeA, nodeB)
     // nodes.push(nodeA)
     // nodes.push(nodeB)
     // edges.push(edge)
-    // 
+    
     // let nodeA = new Node(createVector(-20, -20))
     // let nodeB = new Node(createVector(20, -20))
     // let nodeC = new Node(createVector(20, 20))
