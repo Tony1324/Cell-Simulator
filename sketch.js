@@ -5,7 +5,7 @@ let largeRadius, smallRadius;
 let center 
 
 let horizontalPartitions = 1;
-let lateralPartitions = 5;
+let lateralPartitions = 4;
 
 let mouse = new Vector(0,0)
 
@@ -42,17 +42,17 @@ nodes = embryo.nodes
 edges = embryo.edges
 cells = embryo.cells
 
-// let nodeA = new Node(createVector(-20,0))
-// let nodeB = new Node(createVector(20,0))
+// let nodeA = new Node(new Vector(-20,0))
+// let nodeB = new Node(new Vector(20,0))
 // let edge = new Edge(nodeA, nodeB)
 // nodes.push(nodeA)
 // nodes.push(nodeB)
 // edges.push(edge)
 
-// let nodeA = new Node(createVector(-20, -20))
-// let nodeB = new Node(createVector(20, -20))
-// let nodeC = new Node(createVector(20, 20))
-// let nodeD = new Node(createVector(-20, 20))
+// let nodeA = new Node(new Vector(-20, -20))
+// let nodeB = new Node(new Vector(20, -20))
+// let nodeC = new Node(new Vector(20, 20))
+// let nodeD = new Node(new Vector(-20, 20))
 // let edgeA = new Edge(nodeA, nodeB)
 // let edgeB = new Edge(nodeB, nodeC)
 // let edgeC = new Edge(nodeC, nodeD)
@@ -134,12 +134,21 @@ function arrow(v1, v2) {
     ctx.stroke();
     ctx.strokeStyle = 'black'
   }
-
-for(let i = 16; i < 24; i++){
+// 
+for(let i = 0; i < sectors; i++){
+  if(i >= 16 && i < 24){
     for (let j = 0; j < horizontalPartitions; j++){
         cells[i].edges[lateralPartitions + j].idealLength = 0;
+        cells[i].edges[lateralPartitions + j].springConstant = 0.3;
     }
-    cells[i].color = "red"
+    cells[i].color = "deeppink"
+  } else {
+      for (let j = 0; j < lateralPartitions; j++){
+          cells[i].edges[j].idealLength = 10;
+          cells[i].edges[j+horizontalPartitions+lateralPartitions].idealLength = 10;
+      }
+  } 
+  
 }
 
 function draw() {

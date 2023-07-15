@@ -64,6 +64,7 @@ class Edge {
         this.nodeB = nodeB;
         this.type = type;
         this.idealLength = this.getLength()
+        this.springConstant = 0.1
     }
 
     calcForces(){
@@ -77,8 +78,7 @@ class Edge {
 
     springForce(){
         const diff = this.getLength()-this.idealLength
-        const springConstant = 0.1
-        let dir = Vector.sub(this.nodeB.pos, this.nodeA.pos).normalize().mult(diff*springConstant)
+        let dir = Vector.sub(this.nodeB.pos, this.nodeA.pos).normalize().mult(diff*this.springConstant)
         this.nodeA.addForce(dir)
         this.nodeB.addForce(dir.mult(-1))
     }
@@ -106,7 +106,7 @@ class Cell {
         }
         this.stiffnessConstant = 3
         this.osmosisConstant = 0.00002
-        this.color = '#F609'
+        this.color = '#F80B'
         Object.assign(this, config)
         
     }
@@ -117,7 +117,7 @@ class Cell {
     }
     update(){
         this.osmosisForce()
-        // this.stiffness()
+        this.stiffness()
     }
     stiffness(){
         const mod = (n,m) => n - (m * Math.floor(n/m));
@@ -142,7 +142,7 @@ class Cell {
             node.addForce(norm1)
             node.addForce(norm2)
             
-            prev.addForce(norm1.mult(1))
+            prev.addForce(norm1.mult(-1))
             next.addForce(norm2.mult(-1))
         }
     }
@@ -253,6 +253,7 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
         if (previousLargeNode != null && previousSmallNode != null && previousVerticalNodes != null) {
             previousVerticalNodes.reverse()
             let previousVerticalEdges = createEdges(previousVerticalNodes, "verticalNode")
+            edges = edges.concat(previousVerticalEdges)
             
             // APICAL EDGES
             let apicalNodes = [previousLargeNode]
@@ -308,6 +309,7 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
     
     previousVerticalNodes.reverse()
     let previousVerticalEdges = createEdges(previousVerticalNodes, "verticalNode")
+    edges = edges.concat(previousVerticalEdges)
     
     let apicalEdges, basalEdges
     // Connect the first and last edges
@@ -353,7 +355,7 @@ function createRingCell(nodes){
         const edge = new Edge(nodeA, nodeB)
         edges.push(edge)
     }
-    return new Cell(edges, nodes, {stiffnessConstant: 0, osmosisConstant:0.000001, color: "#0000"})
+    return new Cell(edges, nodes, {stiffnessConstant: 0, osmosisConstant:0.000002, color: "#0000"})
 }
 
 class Vector {
