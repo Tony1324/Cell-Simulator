@@ -35,9 +35,9 @@ center = new Vector(0,0)
 largeRadius = Math.min(width, height) * 0.4;
 smallRadius = largeRadius * 0.7;
 
-let sectors = 80;
+let sectors =80;
 
-const embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 10000, largeRadius, smallRadius);
+const embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0, largeRadius, smallRadius);
 nodes = embryo.nodes
 edges = embryo.edges
 cells = embryo.cells
@@ -58,17 +58,17 @@ cells = embryo.cells
 // let edgeC = new Edge(nodeC, nodeD)
 // let edgeD = new Edge(nodeD, nodeA)
 // let cell = new Cell([edgeA, edgeB, edgeC, edgeD], [nodeA, nodeB, nodeC, nodeD])
-// 
+
 // nodes.push(nodeA)
 // nodes.push(nodeB)
 // nodes.push(nodeC)
 // nodes.push(nodeD)
-// 
+
 // edges.push(edgeA)
 // edges.push(edgeB)
 // edges.push(edgeC)
 // edges.push(edgeD)
-// 
+
 // cells.push(cell)
 
 
@@ -123,7 +123,7 @@ function arrow(v1, v2,color) {
     var dy = v2.y - v1.y;
     var angle = Math.atan2(dy, dx);
     ctx.lineWidth = 1
-    ctx.strokeStyle = color
+    ctx.strokeStyle = color ?? "#0000"
     ctx.beginPath();
     ctx.moveTo(v1.x, v1.y);
     ctx.lineTo(v2.x, v2.y);
@@ -144,11 +144,10 @@ for(let i = 0; i < sectors; i++){
     cells[i].color = "deeppink"
   } else {
       for (let j = 0; j < lateralPartitions; j++){
-          cells[i].edges[j].idealLength = 10;
-          cells[i].edges[j+horizontalPartitions+lateralPartitions].idealLength = 10;
+          cells[i].edges[j].idealLength *= 0.7;
+          cells[i].edges[j+horizontalPartitions+lateralPartitions].idealLength *= 0.7;
       }
   } 
-  
 }
 
 function draw() {
@@ -163,11 +162,12 @@ function draw() {
 
     for(let edge of edges) {
         edge.draw(); 
-        edge.calcForces();
+        edge.update();
     }
     
     for(let node of nodes) {
         node.draw();
+        node.update();
         node.move();
         node.updatePosition();
     }

@@ -7,6 +7,8 @@ class Node {
         this.dragged = false;
         this.velocity = new Vector(0,0);
         this.forces = new Object()
+        this.dampeningConstant = 1
+        this.collisionConstant = 1
     }
     addCell(cell) {
         this.cells.push(cell);
@@ -18,6 +20,31 @@ class Node {
         }
         this.forces[type].add(f)
     }
+
+    update(){
+        this.dampeningForce()
+        this.collision()
+    }
+
+    collision(){
+        for(let i=0; i<sectors; i++){
+            const cell = cells[i]
+            if(cell.checkNodeCollide(this)){
+                console.log("colliding")
+                for(let edge of cell.edges){
+                    let dist = edge.distToNode(this)
+                    let dir = edge.getNormal().mult(-1/(dist+1) * this.collisionConstant)
+                    this.addForce(dir, "collision")
+                    edge.addForce(dir.mult(-1), "collision")
+                }
+            }
+        }
+    }
+
+    dampeningForce(){
+        const dir = Vector.mult(this.velocity, -this.dampeningConstant)
+        this.addForce(dir, "dampening")
+    }    
 
     draw() {
         circle(this.pos,1,  false, undefined, true, 2);
@@ -39,9 +66,11 @@ class Node {
             
             force.add(this.forces[type])
             const color = {
-                osmosis: 'red',
-                stiffness: 'blue',
-                spring: 'green',
+                // osmosis: 'red',
+                // stiffness: 'blue',
+                // spring: 'green',
+                // dampening: 'purple',
+                collision: 'magenta'
             }
             arrow(this.pos, Vector.add(this.pos, Vector.mult(this.forces[type], 50)), color[type])
 
@@ -49,7 +78,6 @@ class Node {
         force.limit(5)
         this.velocity.add(force);
         this.pos.add(this.velocity); 
-        this.velocity.mult(0)
         this.pos.limit(largeRadius);
         this.forces = {}
     }
@@ -81,7 +109,7 @@ class Edge {
         this.springConstant = 0.1
     }
 
-    calcForces(){
+    update(){
         this.springForce()
     }
     
@@ -101,11 +129,22 @@ class Edge {
         return Vector.dist(this.nodeA.pos, this.nodeB.pos)
     }
 
+    draw() {
+        line(this.nodeA.pos, this.nodeB.pos, true, 1);
+    }
+
     getNormal(){
         return new Vector(-(this.nodeB.pos.y-this.nodeA.pos.y), this.nodeB.pos.x-this.nodeA.pos.x).normalize()
     }
-    draw() {
-        line(this.nodeA.pos, this.nodeB.pos, true, 1);
+
+    distToNode(node){
+        const lineVec = Vector.sub(this.nodeB.pos, this.nodeA.pos)
+        const p1Vec = Vector.sub(node.pos, this.nodeA.pos)
+        const dotProd = Vector.dot(lineVec, p1Vec)
+        const lengthSquared = lineVec.x**2 + lineVec.y**2
+        const t = Math.min(1, Math.max(dotProd/lengthSquared,0))
+        const proj = Vector.lerp(this.nodeA.pos, this.nodeB.pos, t)
+        return Vector.dist(proj, node.pos)
     }
 }
 
@@ -118,13 +157,12 @@ class Cell {
         for(let i = 0; i<this.nodes.length; i++){
             this.angles.push(this.getAngle(i))
         }
-        this.stiffnessConstant = 3
+        this.stiffnessConstant = 2
         this.osmosisConstant = 0.00002
         this.color = '#F80B'
         Object.assign(this, config)
         
     }
-    
     getCenter() {
         let sum = this.nodes.reduce((total, node) => Vector.add(total,node.pos), new Vector(0,0));
         return sum;
@@ -147,7 +185,9 @@ class Cell {
         const length = this.nodes.length
         for(let i = 0; i<length; i++){
             const angle = this.getAngle(i)
-            const diff = angle - this.angles[i]
+            // const diff = angle - this.angles[i]
+            const diff = mod((angle - this.angles[i] + Math.PI), 2*Math.PI) - Math.PI
+
     
             const prev = this.nodes[mod(i-1, length)]
             const node = this.nodes[mod(i, length)]
@@ -159,8 +199,8 @@ class Cell {
             const norm1 = edge1.getNormal()
             const norm2 = edge2.getNormal()
             
-            norm1.mult(this.stiffnessConstant * diff / edge1.getLength())
-            norm2.mult(this.stiffnessConstant * diff / edge1.getLength())
+            norm1.mult(this.stiffnessConstant * diff / (edge1.getLength()+3))
+            norm2.mult(this.stiffnessConstant * diff / (edge2.getLength()+3))
             
             node.addForce(norm1, "stiffness")
             node.addForce(norm2, "stiffness")
@@ -181,6 +221,7 @@ class Cell {
         const b = Vector.sub(next, node).normalize()
         
         let angle = Math.atan2(Vector.cross(a,b).z, Vector.dot(a,b))  
+        // let angle = Math.atan2(b.y, b.x) - Math.atan2(a.y, a.x)
         if(angle < 0){
             angle+=2*Math.PI
         }
@@ -202,6 +243,33 @@ class Cell {
         }
         area /= 2;
         return Math.abs(area);
+    }
+    checkNodeCollide(node){
+        var i = this.nodes.length;
+        while (i--) {
+            if (this.nodes[i] === node) {
+                return false;
+            }
+        }
+
+        let pos = node.pos.copy()
+        let collision = false;
+
+        for (let edge of this.edges) {
+
+            // get the PVectors at our current position
+            // this makes our if statement a little cleaner
+            let v1 = edge.nodeA.pos;    // c for "current"
+            let v2 = edge.nodeB.pos;       // n for "next"
+
+            // compare position, flip 'collision' variable
+            // back and forth
+            if (((v1.y >= pos.y && v2.y < pos.y) || (v1.y < pos.y && v2.y >= pos.y)) &&
+                    (pos.x < (v2.x-v1.x)*(pos.y-v1.y) / (v2.y-v1.y)+v1.x)) {
+                collision = !collision;
+            }
+        }
+        return collision;
     }
 }
 function getArea(nodes) {
@@ -231,7 +299,7 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
     let apicalRing = [];
 
     let angle = 2*Math.PI / sectors;
-    let offsetLimit = angle / offset;
+    let offsetLimit = angle * offset;
     let firstLargeNode = null;
     let firstSmallNode = null;
     let firstVerticalEdges = null;
