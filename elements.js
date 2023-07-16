@@ -6,14 +6,17 @@ class Node {
         this.cells = []; // Add cells property here
         this.dragged = false;
         this.velocity = new Vector(0,0);
-        this.force = new Vector(0,0);
+        this.forces = new Object()
     }
     addCell(cell) {
         this.cells.push(cell);
     }
     
-    addForce(f){
-        this.force.add(f)
+    addForce(f, type){
+        if(!this.forces[type]){
+            this.forces[type] = new Vector(0,0)
+        }
+        this.forces[type].add(f)
     }
 
     draw() {
@@ -31,13 +34,24 @@ class Node {
     }
 
     move(){
-        this.force.limit(5);
-        arrow(this.pos, Vector.add(this.pos, Vector.mult(this.force, 50)))
-        this.velocity.add(this.force);
+        let force = new Vector(0,0)
+        for(let type in this.forces){
+            
+            force.add(this.forces[type])
+            const color = {
+                osmosis: 'red',
+                stiffness: 'blue',
+                spring: 'green',
+            }
+            arrow(this.pos, Vector.add(this.pos, Vector.mult(this.forces[type], 50)), color[type])
+
+        }
+        force.limit(5)
+        this.velocity.add(force);
         this.pos.add(this.velocity); 
-        this.force.mult(0)
         this.velocity.mult(0)
         this.pos.limit(largeRadius);
+        this.forces = {}
     }
     
     updatePosition() {
@@ -71,16 +85,16 @@ class Edge {
         this.springForce()
     }
     
-    addForce(f){
-        this.nodeA.addForce(f)
-        this.nodeB.addForce(f)
+    addForce(f, type){
+        this.nodeA.addForce(f, type)
+        this.nodeB.addForce(f, type)
     }
 
     springForce(){
         const diff = this.getLength()-this.idealLength
         let dir = Vector.sub(this.nodeB.pos, this.nodeA.pos).normalize().mult(diff*this.springConstant)
-        this.nodeA.addForce(dir)
-        this.nodeB.addForce(dir.mult(-1))
+        this.nodeA.addForce(dir, "spring")
+        this.nodeB.addForce(dir.mult(-1), "spring")
     }
 
     getLength(){
@@ -119,6 +133,15 @@ class Cell {
         this.osmosisForce()
         this.stiffness()
     }
+    osmosisForce(){
+        const area = this.getArea()
+        const diff = area - this.idealArea
+        for(let edge of this.edges){
+            let normal = edge.getNormal()
+            normal.mult(diff*this.osmosisConstant*edge.getLength())
+            edge.addForce(normal, "osmosis")
+        }
+    }
     stiffness(){
         const mod = (n,m) => n - (m * Math.floor(n/m));
         const length = this.nodes.length
@@ -139,11 +162,11 @@ class Cell {
             norm1.mult(this.stiffnessConstant * diff / edge1.getLength())
             norm2.mult(this.stiffnessConstant * diff / edge1.getLength())
             
-            node.addForce(norm1)
-            node.addForce(norm2)
+            node.addForce(norm1, "stiffness")
+            node.addForce(norm2, "stiffness")
             
-            prev.addForce(norm1.mult(-1))
-            next.addForce(norm2.mult(-1))
+            prev.addForce(norm1.mult(-1), "stiffness")
+            next.addForce(norm2.mult(-1), "stiffness")
         }
     }
     getAngle(i){
@@ -163,15 +186,7 @@ class Cell {
         }
         return angle
     }
-    osmosisForce(){
-        const area = this.getArea()
-        const diff = area - this.idealArea
-        for(let edge of this.edges){
-            let normal = edge.getNormal()
-            normal.mult(diff*this.osmosisConstant*edge.getLength())
-            edge.addForce(normal)
-        }
-    }
+
     
     draw() {
         // now we can draw the cell as a polygon

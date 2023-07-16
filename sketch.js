@@ -37,7 +37,7 @@ smallRadius = largeRadius * 0.7;
 
 let sectors = 80;
 
-const embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 100000, largeRadius, smallRadius);
+const embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 10000, largeRadius, smallRadius);
 nodes = embryo.nodes
 edges = embryo.edges
 cells = embryo.cells
@@ -117,13 +117,13 @@ function polygon(vs, fill, fillStyle, stroke, strokeWidth){
       }
 }
 
-function arrow(v1, v2) {
+function arrow(v1, v2,color) {
     var headlen = 2; // length of head in pixels
     var dx = v2.x - v1.x;
     var dy = v2.y - v1.y;
     var angle = Math.atan2(dy, dx);
     ctx.lineWidth = 1
-    ctx.strokeStyle = 'green'
+    ctx.strokeStyle = color
     ctx.beginPath();
     ctx.moveTo(v1.x, v1.y);
     ctx.lineTo(v2.x, v2.y);
@@ -134,7 +134,7 @@ function arrow(v1, v2) {
     ctx.stroke();
     ctx.strokeStyle = 'black'
   }
-// 
+
 for(let i = 0; i < sectors; i++){
   if(i >= 16 && i < 24){
     for (let j = 0; j < horizontalPartitions; j++){
@@ -167,9 +167,9 @@ function draw() {
     }
     
     for(let node of nodes) {
+        node.draw();
         node.move();
         node.updatePosition();
-        node.draw();
     }
     
     requestAnimationFrame(draw)
