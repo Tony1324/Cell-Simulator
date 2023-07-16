@@ -37,7 +37,7 @@ smallRadius = largeRadius * 0.7;
 
 let sectors =80;
 
-const embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0, largeRadius, smallRadius);
+let embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0, largeRadius, smallRadius);
 nodes = embryo.nodes
 edges = embryo.edges
 cells = embryo.cells
@@ -134,22 +134,24 @@ function arrow(v1, v2,color) {
     ctx.stroke();
     ctx.strokeStyle = 'black'
   }
-
-for(let i = 0; i < sectors; i++){
-  if(i >= 16 && i < 24){
-    for (let j = 0; j < horizontalPartitions; j++){
-        cells[i].edges[lateralPartitions + j].idealLength = 0;
-        cells[i].edges[lateralPartitions + j].springConstant = 0.3;
+function setUpConstrictingCells(){
+    for(let i = 0; i < sectors; i++){
+    if(i >= 16 && i < 24){
+        for (let j = 0; j < horizontalPartitions; j++){
+            cells[i].edges[lateralPartitions + j].idealLength = 0;
+            cells[i].edges[lateralPartitions + j].springConstant = 0.3;
+        }
+        cells[i].color = "deeppink"
+    } else {
+        for (let j = 0; j < lateralPartitions; j++){
+            cells[i].edges[j].idealLength *= 0.7;
+            cells[i].edges[j+horizontalPartitions+lateralPartitions].idealLength *= 0.7;
+        }
+    } 
     }
-    cells[i].color = "deeppink"
-  } else {
-      for (let j = 0; j < lateralPartitions; j++){
-          cells[i].edges[j].idealLength *= 0.7;
-          cells[i].edges[j+horizontalPartitions+lateralPartitions].idealLength *= 0.7;
-      }
-  } 
 }
 
+let animationId = null;
 function draw() {
     ctx.clearRect(-width/2, -height/2, width, height)
     circle(center,largeRadius+1, false, undefined ,  true, 3)
@@ -172,14 +174,39 @@ function draw() {
         node.updatePosition();
     }
     
-    requestAnimationFrame(draw)
+    animationId = requestAnimationFrame(draw);
 }
-
 draw()
+setUpConstrictingCells()
 
+document.getElementById("start-button").addEventListener("click", ()=>{
+    if(animationId !== null) cancelAnimationFrame(animationId);
+    // Any code to reset the state of the simulation
+    edges = [];
+    nodes = [];
+    cells = [];
+    let embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0, largeRadius, smallRadius);
+    nodes = embryo.nodes
+    edges = embryo.edges
+    cells = embryo.cells
+    setUpConstrictingCells();
+    draw();
+})
+
+document.getElementById("play-pause-button").addEventListener("click", ()=>{
+    if(animationId !== null) {
+        cancelAnimationFrame(animationId)
+        animationId = null;
+        document.getElementById("play-pause-button").innerText = "Resume Simulation"
+    } else{
+        draw()
+        document.getElementById("play-pause-button").innerText = "Pause Simulation"
+    }
+})
 window.addEventListener("mousemove",(e)=>{
-    mouse.x = e.pageX
-    mouse.y = e.pageY
+    const pos = canvas.getBoundingClientRect()
+    mouse.x = e.pageX - pos.left
+    mouse.y = e.pageY - pos.top
 })
 
 window.addEventListener("mousedown", ()=>{

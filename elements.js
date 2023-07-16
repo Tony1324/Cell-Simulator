@@ -7,8 +7,8 @@ class Node {
         this.dragged = false;
         this.velocity = new Vector(0,0);
         this.forces = new Object()
-        this.dampeningConstant = 1
-        this.collisionConstant = 1
+        this.dampeningConstant = 0.1
+        this.collisionConstant = 0.5
     }
     addCell(cell) {
         this.cells.push(cell);
@@ -33,7 +33,7 @@ class Node {
                 console.log("colliding")
                 for(let edge of cell.edges){
                     let dist = edge.distToNode(this)
-                    let dir = edge.getNormal().mult(-1/(dist+1) * this.collisionConstant)
+                    let dir = edge.getNormal().mult(-1/(dist+3) * this.collisionConstant)
                     this.addForce(dir, "collision")
                     edge.addForce(dir.mult(-1), "collision")
                 }
