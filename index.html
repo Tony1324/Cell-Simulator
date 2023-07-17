@@ -10,13 +10,19 @@
     <main>
       <button id="start-button">Restart Simulation</button>
       <button id="play-pause-button">Pause Simulation</button>
-
-      <canvas width="800" height="800">
-        canvas not supported
-      </canvas>
+      <button id="create-gif-button">Create GIF</button>
+      <div style="display: flex; justify-content: space-between;">
+        <canvas id="canvas" width="800" height="800"></canvas>
+        <div id="output">
+          <p id="progress"></p>
+        </div>
+      </div>
+      
+      
     </main>
     <script src="elements.js"></script>
     <script src="sketch.js" defer></script>
+    <script src="gifshot.min.js"></script>
     
   </body>
 </html>

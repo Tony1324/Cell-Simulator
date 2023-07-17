@@ -10,7 +10,7 @@ let lateralPartitions = 4;
 let mouse = new Vector(0,0)
 
 const canvas = document.querySelector("canvas")
-const ctx = canvas.getContext("2d")
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 
 if (window.devicePixelRatio > 1) {
@@ -152,11 +152,16 @@ function setUpConstrictingCells(){
 }
 
 let animationId = null;
+let frames = [];
 function draw() {
     ctx.clearRect(-width/2, -height/2, width, height)
+
+    //for the gif
+    ctx.fillStyle = 'white';
+    ctx.fillRect(-width/2, -height/2, width, height);
+
     circle(center,largeRadius+1, false, undefined ,  true, 3)
-    // polygon([new Vector(0,0), new Vector(0, 10), new Vector(10, 0)], true, 'red', true, 2);
-    
+
     for(let cell of cells) {
         cell.draw()
         cell.update()
@@ -174,14 +179,117 @@ function draw() {
         node.updatePosition();
     }
     
+    let dataURL = canvas.toDataURL("image/png");
+    frames.push(dataURL);
+
     animationId = requestAnimationFrame(draw);
 }
+
 draw()
 setUpConstrictingCells()
+function createGif() {
+    
+    let progressText = document.getElementById('progress');
+    
+    gifshot.createGIF({
+        images: frames,
+        gifWidth: width/2,   // Reduce the resolution
+        gifHeight: height/2, // Reduce the resolution
+        frameDuration: 0.5,
+        progressCallback: function (progress) {
+            progressText.innerText = 'Creating GIF: ' + Math.round(progress * 100) + '%';
+        },
+    }, function (obj) {
+        if (obj.error) {
+            console.error('gifshot error:', obj.error);
+            return;
+        }
+        
+        var image = obj.image;
+
+        // Create an img element and set its src to the image data
+        var img = document.createElement('img');
+        img.src = image;
+
+        // Append the img to the document body
+        document.body.appendChild(img);
+
+        // Create a button for downloading the GIF
+        var button = document.createElement('button');
+        button.innerText = 'Download GIF';
+        button.onclick = function () {
+            // Create a link element
+            var link = document.createElement('a');
+
+            // Set the download attribute to automatically download the image
+            link.download = 'simulation.gif';
+
+            // Set the href to the image data
+            link.href = image;
+
+            // Simulate a click on the link to start the download
+            link.click();
+        };
+
+        // Append the button to the document body
+        
+        document.getElementById('output').appendChild(img);
+
+        // Create a wrapper div for buttons
+        var buttonWrapper = document.createElement('div');
+        buttonWrapper.style.display = 'flex';
+    
+        // Add the download button
+        var button = document.createElement('button');
+        button.innerText = 'Download GIF';
+        button.onclick = function () {
+            var link = document.createElement('a');
+            link.download = 'simulation.gif';
+            link.href = image;
+            link.click();
+        };
+        buttonWrapper.appendChild(button);
+        
+        // Add button for opening GIF in new tab
+        var openButton = document.createElement('button');
+        openButton.innerText = 'Open GIF in New Tab';
+        openButton.onclick = function () {
+            // Convert base64/URLEncoded data component to raw binary data held in a string
+            var byteString;
+            if (image.split(',')[0].indexOf('base64') >= 0)
+                byteString = atob(image.split(',')[1]);
+            else
+                byteString = unescape(image.split(',')[1]);
+    
+            // separate out the mime component
+            var mimeString = image.split(',')[0].split(':')[1].split(';')[0];
+    
+            // write the bytes of the string to a typed array
+            var ia = new Uint8Array(byteString.length);
+            for (var i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+    
+            // Create blob URL
+            var blob = new Blob([ia], {type:mimeString});
+            var blobUrl = URL.createObjectURL(blob);
+            
+            window.open(blobUrl, '_blank');
+        };
+        buttonWrapper.appendChild(openButton);
+        
+        // Append the wrapper to output
+        document.getElementById('output').appendChild(buttonWrapper);
+
+    });
+}
+
+document.getElementById("create-gif-button").addEventListener("click", createGif);
 
 document.getElementById("start-button").addEventListener("click", ()=>{
     if(animationId !== null) cancelAnimationFrame(animationId);
     // Any code to reset the state of the simulation
+    frames = [];
     edges = [];
     nodes = [];
     cells = [];

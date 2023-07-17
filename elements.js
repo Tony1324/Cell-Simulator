@@ -7,7 +7,7 @@ class Node {
         this.dragged = false;
         this.velocity = new Vector(0,0);
         this.forces = new Object()
-        this.dampeningConstant = 0.1
+        this.dampeningConstant = 0.2
         this.collisionConstant = 0.5
     }
     addCell(cell) {
