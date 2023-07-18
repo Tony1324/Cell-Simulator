@@ -5,7 +5,7 @@ let largeRadius, smallRadius;
 let center 
 
 let horizontalPartitions = 1;
-let lateralPartitions = 4;
+let lateralPartitions = 3;
 
 let mouse = new Vector(0,0)
 
@@ -35,7 +35,7 @@ center = new Vector(0,0)
 largeRadius = Math.min(width, height) * 0.4;
 smallRadius = largeRadius * 0.7;
 
-let sectors =80;
+let sectors = 80;
 
 let embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0, largeRadius, smallRadius);
 nodes = embryo.nodes
@@ -136,7 +136,7 @@ function arrow(v1, v2,color) {
   }
 function setUpConstrictingCells(){
     for(let i = 0; i < sectors; i++){
-    if(i >= 16 && i < 24){
+    if(i >= 14 && i < 26){
         for (let j = 0; j < horizontalPartitions; j++){
             cells[i].edges[lateralPartitions + j].idealLength = 0;
             cells[i].edges[lateralPartitions + j].springConstant = 0.3;
@@ -312,9 +312,9 @@ document.getElementById("play-pause-button").addEventListener("click", ()=>{
     }
 })
 window.addEventListener("mousemove",(e)=>{
-    const pos = canvas.getBoundingClientRect()
-    mouse.x = e.pageX - pos.left
-    mouse.y = e.pageY - pos.top
+    let pos = canvas.getBoundingClientRect()
+    mouse.x = e.pageX - pos.left - document.documentElement.scrollLeft
+    mouse.y = e.pageY - pos.top - document.documentElement.scrollTop
 })
 
 window.addEventListener("mousedown", ()=>{

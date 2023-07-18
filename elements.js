@@ -7,7 +7,7 @@ class Node {
         this.dragged = false;
         this.velocity = new Vector(0,0);
         this.forces = new Object()
-        this.dampeningConstant = 0.2
+        this.dampeningConstant = 1
         this.collisionConstant = 0.5
     }
     addCell(cell) {
@@ -66,10 +66,10 @@ class Node {
             
             force.add(this.forces[type])
             const color = {
-                // osmosis: 'red',
-                // stiffness: 'blue',
-                // spring: 'green',
-                // dampening: 'purple',
+                osmosis: 'red',
+                stiffness: 'blue',
+                spring: 'green',
+                dampening: 'purple',
                 collision: 'magenta'
             }
             arrow(this.pos, Vector.add(this.pos, Vector.mult(this.forces[type], 50)), color[type])
