@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <!-- <script src="p5.js"></script> -->
     <link rel="stylesheet" type="text/css" href="style.css">
     <meta charset="utf-8" />
 
   </head>
   <body>
-    <main>
-      <button id="start-button">Restart Simulation</button>
-      <button id="play-pause-button">Pause Simulation</button>
-      <button id="create-gif-button">Create GIF</button>
-      <div style="display: flex; justify-content: space-between;">
+      
+      <main>
         <canvas id="canvas" width="800" height="800"></canvas>
-        <div id="output">
-          <p id="progress"></p>
+        
+      </main>
+      <div id="sidebar">
+        <div id="control-group">
+          <button id="start-button">Restart</button>
+          <button id="play-pause-button">Pause</button>
+          <button id="start-gif">Start recording</button>
+          <button id="create-gif-button">Create GIF</button>
         </div>
+        <p id="time">Time: 0</p>
+        <p id="progress"></p>
+        <canvas id="chartA"></canvas>
       </div>
-      
-      
-    </main>
     <script src="elements.js"></script>
     <script src="sketch.js" defer></script>
     <script src="gifshot.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </body>
 </html>

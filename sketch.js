@@ -136,30 +136,34 @@ function arrow(v1, v2,color) {
   }
 function setUpConstrictingCells(){
     for(let i = 0; i < sectors; i++){
-    if(i >= 14 && i < 26){
-        for (let j = 0; j < horizontalPartitions; j++){
-            cells[i].edges[lateralPartitions + j].idealLength = 0;
-            cells[i].edges[lateralPartitions + j].springConstant = 0.3;
-        }
-        cells[i].color = "deeppink"
-    } else {
-        for (let j = 0; j < lateralPartitions; j++){
-            cells[i].edges[j].idealLength *= 0.7;
-            cells[i].edges[j+horizontalPartitions+lateralPartitions].idealLength *= 0.7;
-        }
-    } 
+    let ringDistance = getRingDistance(i)
+    let constriction = getApicalConstrictionAmount(ringDistance)
+    for (let j = 0; j < horizontalPartitions; j++){
+        cells[i].edges[lateralPartitions + j].idealLength *= constriction;
+        cells[i].edges[lateralPartitions + j].springConstant += 0.3 * (1-constriction);
+    }
+    cells[i].color = `rgb(255, ${constriction*200}, 0)`
+    
+    for (let j = 0; j < lateralPartitions; j++){
+        cells[i].edges[j].idealLength *= (1 - (0.3 * constriction));
+        cells[i].edges[j+horizontalPartitions+lateralPartitions].idealLength *= (1 - (0.3 * constriction));
+    }
     }
 }
 
 let animationId = null;
 let frames = [];
+let recordGif = false;
+let time = 0;
+let deltaTime = 1;
 function draw() {
     ctx.clearRect(-width/2, -height/2, width, height)
 
     //for the gif
-    ctx.fillStyle = 'white';
-    ctx.fillRect(-width/2, -height/2, width, height);
-
+    if (recordGif){
+        ctx.fillStyle = 'white';
+        ctx.fillRect(-width/2, -height/2, width, height);
+    }
     circle(center,largeRadius+1, false, undefined ,  true, 3)
 
     for(let cell of cells) {
@@ -179,22 +183,42 @@ function draw() {
         node.updatePosition();
     }
     
-    let dataURL = canvas.toDataURL("image/png");
-    frames.push(dataURL);
-
+    if (recordGif){ 
+        let dataURL = canvas.toDataURL("image/png");
+        frames.push(dataURL);
+    }
+    time += deltaTime;
+    document.getElementById("time").innerHTML = `Time: ${time}`
     animationId = requestAnimationFrame(draw);
 }
+
+
+let chartA = new Chart(document.getElementById("chartA"), {
+    type: 'line',
+    labels:[1,2,3,4,5,6],
+    data: {
+        datasets:[{
+            data: [1,2,3,4,5]
+        }]
+    },
+});
+
+// chartA.data.datasets[0].data.push({x:1, y:2})
+// chartA.data.datasets[0].data.push({x:3, y:3})
+// chartA.data.datasets[0].data.push({x:4, y:5})
+// chartA.data.datasets[0].data.push({x:5, y:1})
+// chartA.update()
 
 draw()
 setUpConstrictingCells()
 function createGif() {
-    
+    recordGif = false
     let progressText = document.getElementById('progress');
     
     gifshot.createGIF({
         images: frames,
-        gifWidth: width/2,   // Reduce the resolution
-        gifHeight: height/2, // Reduce the resolution
+        gifWidth: width,   // Reduce the resolution
+        gifHeight: height, // Reduce the resolution
         frameDuration: 0.5,
         progressCallback: function (progress) {
             progressText.innerText = 'Creating GIF: ' + Math.round(progress * 100) + '%';
@@ -233,7 +257,7 @@ function createGif() {
 
         // Append the button to the document body
         
-        document.getElementById('output').appendChild(img);
+        document.getElementById('sidebar').appendChild(img);
 
         // Create a wrapper div for buttons
         var buttonWrapper = document.createElement('div');
@@ -279,13 +303,17 @@ function createGif() {
         buttonWrapper.appendChild(openButton);
         
         // Append the wrapper to output
-        document.getElementById('output').appendChild(buttonWrapper);
+        document.getElementById('sidebar').appendChild(buttonWrapper);
 
-    });
+    });``
 }
 
-document.getElementById("create-gif-button").addEventListener("click", createGif);
-
+function startGif(){
+    recordGif = true;
+}
+document.getElementById("create-gif-button").addEventListener("click", () => {
+    createGif});
+document.getElementById("start-gif").addEventListener("click", startGif);
 document.getElementById("start-button").addEventListener("click", ()=>{
     if(animationId !== null) cancelAnimationFrame(animationId);
     // Any code to reset the state of the simulation
@@ -305,10 +333,10 @@ document.getElementById("play-pause-button").addEventListener("click", ()=>{
     if(animationId !== null) {
         cancelAnimationFrame(animationId)
         animationId = null;
-        document.getElementById("play-pause-button").innerText = "Resume Simulation"
+        document.getElementById("play-pause-button").innerText = "Resume"
     } else{
         draw()
-        document.getElementById("play-pause-button").innerText = "Pause Simulation"
+        document.getElementById("play-pause-button").innerText = "Pause"
     }
 })
 window.addEventListener("mousemove",(e)=>{

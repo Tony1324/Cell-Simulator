@@ -9,6 +9,7 @@ class Node {
         this.forces = new Object()
         this.dampeningConstant = 1
         this.collisionConstant = 0.5
+        this.updaters = [this.dampeningForce, this.collision]
     }
     addCell(cell) {
         this.cells.push(cell);
@@ -22,13 +23,15 @@ class Node {
     }
 
     update(){
-        this.dampeningForce()
-        this.collision()
+        for(let f of this.updaters){
+            f.bind(this)()
+        }
     }
 
     collision(){
-        for(let i=0; i<sectors; i++){
+        for(let i=0; i<cells.length; i++){
             const cell = cells[i]
+            if (cell.disableCollision) continue
             if(cell.checkNodeCollide(this)){
                 console.log("colliding")
                 for(let edge of cell.edges){
@@ -107,10 +110,13 @@ class Edge {
         this.type = type;
         this.idealLength = this.getLength()
         this.springConstant = 0.1
+        this.updaters = [this.springForce]
     }
 
     update(){
-        this.springForce()
+        for(let f of this.updaters){
+            f.bind(this)()
+        }
     }
     
     addForce(f, type){
@@ -157,8 +163,9 @@ class Cell {
         for(let i = 0; i<this.nodes.length; i++){
             this.angles.push(this.getAngle(i))
         }
+        this.updaters = [this.osmosisForce, this.stiffness]
         this.stiffnessConstant = 2
-        this.osmosisConstant = 0.00002
+        this.osmosisConstant = 0.00005
         this.color = '#F80B'
         Object.assign(this, config)
         
@@ -168,8 +175,9 @@ class Cell {
         return sum;
     }
     update(){
-        this.osmosisForce()
-        this.stiffness()
+        for(let f of this.updaters){
+            f.bind(this)()
+        }
     }
     osmosisForce(){
         const area = this.getArea()
@@ -272,6 +280,8 @@ class Cell {
         return collision;
     }
 }
+
+
 function getArea(nodes) {
     let area = 0;
     for(let i = 0; i < nodes.length; i++){
@@ -312,10 +322,10 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
         let thetaLarge = i * angle + (Math.random()-0.5) * offsetLimit * 2;
         let thetaSmall = i * angle + (Math.random()-0.5) * offsetLimit * 2;
 
-        let vLarge = new Vector(largeRadius, 0)
+        let vLarge = new Vector(0, largeRadius)
         vLarge.rotate(thetaLarge)
 
-        let vSmall = new Vector(smallRadius, 0)
+        let vSmall = new Vector(0, smallRadius)
         vSmall.rotate(thetaSmall)
         
         let verticalNodes = []
@@ -438,7 +448,24 @@ function createRingCell(nodes){
         const edge = new Edge(nodeA, nodeB)
         edges.push(edge)
     }
-    return new Cell(edges, nodes, {stiffnessConstant: 0, osmosisConstant:0.000002, color: "#0000"})
+     
+    let cell = new Cell(edges, nodes, {stiffnessConstant: 0, osmosisConstant:0.000005, color: "#0000"})
+    cell.disableCollision = true
+    return cell 
+}
+
+function getRingDistance(a,b=0){
+    return Math.min(Math.abs(a-b), Math.abs(a-b-sectors+1))
+}
+
+function getApicalConstrictionAmount(x){
+    let gradient = [0, 0.1, 0.15, 0.2, 0.4, 0.7, 0.9, 0.99]
+    if(x >= gradient.length) return 1
+    return gradient[x]
+}
+
+function calculateRamp(startLength, endLength, time, deltaTime){
+    let frameNumber = time/deltaTime;
 }
 
 class Vector {
