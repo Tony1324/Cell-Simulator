@@ -1,5 +1,31 @@
-class Node {
+class Entity{
+    constructor(){
+        this.updaters = []
+    }
+    update(){
+        for(let f of this.updaters){
+            f.bind(this)()
+        }
+    }
+    gradualChange(propertyName, endValue, duration){
+        const startTime = time
+        const startValue = this[propertyName]
+        this.updaters.push(function(){
+            const progress = (time - startTime)/duration
+            if(duration == 0) progress = 1
+            if(progress >= 1){
+                let index = this.updaters.indexOf(this)
+                this.updaters.splice(index, 1);
+            }
+            const value = startValue + (endValue - startValue)*progress
+            this[propertyName] = value
+        })
+    }
+}
+
+class Node extends Entity{
     constructor(pos, type) {
+        super()
         this.pos = pos
         this.type = type;
         this.edges = [];
@@ -7,10 +33,12 @@ class Node {
         this.dragged = false;
         this.velocity = new Vector(0,0);
         this.forces = new Object()
-        this.dampeningConstant = 1
+        this.dampeningConstant = 0.2
         this.collisionConstant = 0.5
         this.updaters = [this.dampeningForce, this.collision]
     }
+
+
     addCell(cell) {
         this.cells.push(cell);
     }
@@ -22,24 +50,27 @@ class Node {
         this.forces[type].add(f)
     }
 
-    update(){
-        for(let f of this.updaters){
-            f.bind(this)()
-        }
-    }
-
     collision(){
         for(let i=0; i<cells.length; i++){
             const cell = cells[i]
             if (cell.disableCollision) continue
             if(cell.checkNodeCollide(this)){
-                console.log("colliding")
+                let force = new Vector(0,0)
+                let closestDistance = Infinity
+                for(let edge of cell.edges){
+                    let dist = edge.distToNode(this)
+                    closestDistance = Math.min(dist , closestDistance)
+                    let dir = edge.getNormal().mult(-1/(dist+3) * this.collisionConstant)
+                    force.add(dir)
+                }
                 for(let edge of cell.edges){
                     let dist = edge.distToNode(this)
                     let dir = edge.getNormal().mult(-1/(dist+3) * this.collisionConstant)
-                    this.addForce(dir, "collision")
-                    edge.addForce(dir.mult(-1), "collision")
+                    edge.addForce(dir.mult(-1 / force.magnitude * closestDistance), "collision")
                 }
+                force.normalize()
+                force.mult(closestDistance)
+                this.addForce(force, "collision")
             }
         }
     }
@@ -62,7 +93,9 @@ class Node {
     mouseReleased() {
         this.dragged = false;
     }
-
+    getDistance(){
+        return largeRadius-this.pos.magnitude
+    }
     move(){
         let force = new Vector(0,0)
         for(let type in this.forces){
@@ -103,8 +136,9 @@ class Node {
     }
 }
 
-class Edge {
+class Edge extends Entity {
     constructor(nodeA, nodeB, type) {
+        super()
         this.nodeA = nodeA;
         this.nodeB = nodeB;
         this.type = type;
@@ -113,12 +147,6 @@ class Edge {
         this.updaters = [this.springForce]
     }
 
-    update(){
-        for(let f of this.updaters){
-            f.bind(this)()
-        }
-    }
-    
     addForce(f, type){
         this.nodeA.addForce(f, type)
         this.nodeB.addForce(f, type)
@@ -154,8 +182,9 @@ class Edge {
     }
 }
 
-class Cell {
+class Cell extends Entity{
     constructor(edges, nodes, config) {
+        super()
         this.edges = edges
         this.nodes = nodes
         this.idealArea = this.getArea()
@@ -163,22 +192,19 @@ class Cell {
         for(let i = 0; i<this.nodes.length; i++){
             this.angles.push(this.getAngle(i))
         }
-        this.updaters = [this.osmosisForce, this.stiffness]
+        this.updaters = [this.osmosisForce,]
         this.stiffnessConstant = 2
         this.osmosisConstant = 0.00005
         this.color = '#F80B'
         Object.assign(this, config)
         
     }
+
     getCenter() {
         let sum = this.nodes.reduce((total, node) => Vector.add(total,node.pos), new Vector(0,0));
         return sum;
     }
-    update(){
-        for(let f of this.updaters){
-            f.bind(this)()
-        }
-    }
+
     osmosisForce(){
         const area = this.getArea()
         const diff = area - this.idealArea
@@ -464,8 +490,26 @@ function getApicalConstrictionAmount(x){
     return gradient[x]
 }
 
-function calculateRamp(startLength, endLength, time, deltaTime){
-    let frameNumber = time/deltaTime;
+
+function setUpConstrictingCells(){
+    for(let i = 0; i < sectors; i++){
+    let ringDistance = getRingDistance(i)
+    let constriction = getApicalConstrictionAmount(ringDistance)
+    for (let j = 0; j < horizontalPartitions; j++){
+        edge = cells[i].edges[lateralPartitions + j]
+        
+        edge.gradualChange('idealLength', edge.idealLength * constriction, 100);
+        edge.gradualChange('springConstant', edge.springConstant + 0.3,100);
+    }
+    cells[i].color = `rgb(255, ${constriction*200}, 0)`
+    
+    for (let j = 0; j < lateralPartitions; j++){
+        edgeA = cells[i].edges[j]; 
+        edgeB = cells[i].edges[j+horizontalPartitions+lateralPartitions]; 
+        edgeA.gradualChange('idealLength',edgeA.idealLength * (1 - (0.3 * constriction)), 500);
+        edgeB.gradualChange('idealLength',edgeA.idealLength * (1 - (0.3 * constriction)), 500);
+    }
+    }
 }
 
 class Vector {

@@ -1,41 +1,20 @@
 let edges = [];
 let nodes = [];
 let cells = [];
-let largeRadius, smallRadius;
-let center 
-
+let largeRadius = 320;
+let smallRadius = largeRadius * 0.7;
+let center = new Vector(0,0)
 let horizontalPartitions = 1;
 let lateralPartitions = 3;
-
+let sectors = 80;
 let mouse = new Vector(0,0)
 
-const canvas = document.querySelector("canvas")
-const ctx = canvas.getContext('2d', { willReadFrequently: true });
+let animationId = null;
+let frames = [];
+let recordGif = false;
+let time = 0;
 
-
-if (window.devicePixelRatio > 1) {
-    var canvasWidth = canvas.width;
-    var canvasHeight = canvas.height;
-
-    canvas.width = canvasWidth * window.devicePixelRatio;
-    canvas.height = canvasHeight * window.devicePixelRatio;
-    canvas.style.width = canvasWidth + "px";
-    canvas.style.height = canvasHeight + "px";
-
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-}
-
-const width = canvas.width/window.devicePixelRatio
-const height = canvas.height/window.devicePixelRatio
-
-ctx.translate(width/2, height/2)
-    
-center = new Vector(0,0)
-
-largeRadius = Math.min(width, height) * 0.4;
-smallRadius = largeRadius * 0.7;
-
-let sectors = 80;
+let deltaTime = 1;
 
 let embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0, largeRadius, smallRadius);
 nodes = embryo.nodes
@@ -71,91 +50,7 @@ cells = embryo.cells
 
 // cells.push(cell)
 
-
-function circle(v, radius, fill, fillStyle, stroke, strokeWidth) {
-    ctx.beginPath()
-    ctx.arc(v.x, v.y, radius, 0, 2 * Math.PI, false)
-    ctx.closePath()
-    if (fill) {
-      ctx.fillStyle = fill
-      ctx.fill()
-    }
-    if (stroke) {
-      ctx.lineWidth = strokeWidth
-      ctx.strokeStyle = stroke
-      ctx.stroke()
-    }
-}
-
-
-
-function line(v1,v2, strokeWidth){
-    ctx.beginPath();
-    ctx.moveTo(v1.x, v1.y);
-    ctx.lineTo(v2.x, v2.y);
-    // Draw the Path
-    ctx.closePath()
-    ctx.lineWidth = strokeWidth
-    ctx.stroke();
-}
-
-function polygon(vs, fill, fillStyle, stroke, strokeWidth){
-    ctx.beginPath()
-    ctx.moveTo(vs[0].x, vs[0].y)
-    for(let i = 1; i<vs.length; i++){
-        ctx.lineTo(vs[i].x, vs[i].y)
-    }
-    ctx.closePath()
-    if (fill) {
-        ctx.fillStyle = fillStyle
-        ctx.fill()
-      }
-      if (stroke) {
-        ctx.lineWidth = strokeWidth
-        ctx.strokeStyle = stroke
-        ctx.stroke()
-      }
-}
-
-function arrow(v1, v2,color) {
-    var headlen = 2; // length of head in pixels
-    var dx = v2.x - v1.x;
-    var dy = v2.y - v1.y;
-    var angle = Math.atan2(dy, dx);
-    ctx.lineWidth = 1
-    ctx.strokeStyle = color ?? "#0000"
-    ctx.beginPath();
-    ctx.moveTo(v1.x, v1.y);
-    ctx.lineTo(v2.x, v2.y);
-    ctx.lineTo(v2.x - headlen * Math.cos(angle - Math.PI / 6), v2.y - headlen * Math.sin(angle - Math.PI / 6));
-    ctx.moveTo(v2.x, v2.y);
-    ctx.lineTo(v2.x - headlen * Math.cos(angle + Math.PI / 6), v2.y - headlen * Math.sin(angle + Math.PI / 6));
-    ctx.closePath();
-    ctx.stroke();
-    ctx.strokeStyle = 'black'
-  }
-function setUpConstrictingCells(){
-    for(let i = 0; i < sectors; i++){
-    let ringDistance = getRingDistance(i)
-    let constriction = getApicalConstrictionAmount(ringDistance)
-    for (let j = 0; j < horizontalPartitions; j++){
-        cells[i].edges[lateralPartitions + j].idealLength *= constriction;
-        cells[i].edges[lateralPartitions + j].springConstant += 0.3 * (1-constriction);
-    }
-    cells[i].color = `rgb(255, ${constriction*200}, 0)`
-    
-    for (let j = 0; j < lateralPartitions; j++){
-        cells[i].edges[j].idealLength *= (1 - (0.3 * constriction));
-        cells[i].edges[j+horizontalPartitions+lateralPartitions].idealLength *= (1 - (0.3 * constriction));
-    }
-    }
-}
-
-let animationId = null;
-let frames = [];
-let recordGif = false;
-let time = 0;
-let deltaTime = 1;
+let previousUpdateTime = -Infinity
 function draw() {
     ctx.clearRect(-width/2, -height/2, width, height)
 
@@ -188,26 +83,35 @@ function draw() {
         frames.push(dataURL);
     }
     time += deltaTime;
+    if(time - previousUpdateTime > 50){
+    chartA.data.labels.push(time);
+    chartA.data.datasets[0].data.push(nodes[0].getDistance())
+    chartA.update()
+    previousUpdateTime = time
+    }
     document.getElementById("time").innerHTML = `Time: ${time}`
+
     animationId = requestAnimationFrame(draw);
+
 }
 
 
 let chartA = new Chart(document.getElementById("chartA"), {
     type: 'line',
-    labels:[1,2,3,4,5,6],
     data: {
-        datasets:[{
-            data: [1,2,3,4,5]
+        labels: [],
+        datasets: [{
+            label: 'My Dataset',
+            data: [],
+            pointRadius: 0
         }]
     },
+    options: {
+        animation: {
+            duration: 0 // general animation time
+        }
+    }
 });
-
-// chartA.data.datasets[0].data.push({x:1, y:2})
-// chartA.data.datasets[0].data.push({x:3, y:3})
-// chartA.data.datasets[0].data.push({x:4, y:5})
-// chartA.data.datasets[0].data.push({x:5, y:1})
-// chartA.update()
 
 draw()
 setUpConstrictingCells()
