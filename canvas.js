@@ -1,5 +1,6 @@
 
 const canvas = document.querySelector("canvas")
+canvas.ontouchstart = (e)=>{e.preventDefault()}
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 if (window.devicePixelRatio > 1) {

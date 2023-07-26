@@ -7,11 +7,12 @@ class Entity{
             f.bind(this)()
         }
     }
-    gradualChange(propertyName, endValue, duration){
+    gradualChange(propertyName, endValue, duration, delay=0){
         const startTime = time
         const startValue = this[propertyName]
         this.updaters.push(function(){
-            const progress = (time - startTime)/duration
+            const progress = (time - startTime - delay)/duration
+            if(progress < 0) return;
             if(duration == 0) progress = 1
             if(progress >= 1){
                 let index = this.updaters.indexOf(this)
@@ -33,7 +34,7 @@ class Node extends Entity{
         this.dragged = false;
         this.velocity = new Vector(0,0);
         this.forces = new Object()
-        this.dampeningConstant = 0.2
+        this.dampeningConstant = 0.5
         this.collisionConstant = 0.5
         this.updaters = [this.dampeningForce, this.collision]
     }
@@ -81,7 +82,7 @@ class Node extends Entity{
     }    
 
     draw() {
-        circle(this.pos,1,  false, undefined, true, 2);
+        circle(this.pos,1,  false, undefined, true, 1);
     }
     
     mousePressed() {
@@ -101,19 +102,19 @@ class Node extends Entity{
         for(let type in this.forces){
             
             force.add(this.forces[type])
-            const color = {
+            let forceColors = {
                 osmosis: 'red',
                 stiffness: 'blue',
                 spring: 'green',
                 dampening: 'purple',
                 collision: 'magenta'
             }
-            arrow(this.pos, Vector.add(this.pos, Vector.mult(this.forces[type], 50)), color[type])
+            if(showForces[type]) arrow(this.pos, Vector.add(this.pos, Vector.mult(this.forces[type], 50)), forceColors[type])
 
         }
         force.limit(5)
-        this.velocity.add(force);
-        this.pos.add(this.velocity); 
+        this.velocity.add(Vector.mult(force, deltaTime));
+        this.pos.add(Vector.mult(this.velocity, deltaTime)); 
         this.pos.limit(largeRadius);
         this.forces = {}
     }
@@ -143,7 +144,7 @@ class Edge extends Entity {
         this.nodeB = nodeB;
         this.type = type;
         this.idealLength = this.getLength()
-        this.springConstant = 0.1
+        this.springConstant = 3
         this.updaters = [this.springForce]
     }
 
@@ -154,7 +155,7 @@ class Edge extends Entity {
 
     springForce(){
         const diff = this.getLength()-this.idealLength
-        let dir = Vector.sub(this.nodeB.pos, this.nodeA.pos).normalize().mult(diff*this.springConstant)
+        let dir = Vector.sub(this.nodeB.pos, this.nodeA.pos).normalize().mult(diff*this.springConstant/this.idealLength)
         this.nodeA.addForce(dir, "spring")
         this.nodeB.addForce(dir.mult(-1), "spring")
     }
@@ -192,7 +193,7 @@ class Cell extends Entity{
         for(let i = 0; i<this.nodes.length; i++){
             this.angles.push(this.getAngle(i))
         }
-        this.updaters = [this.osmosisForce,]
+        this.updaters = [this.osmosisForce,this.stiffness]
         this.stiffnessConstant = 2
         this.osmosisConstant = 0.00005
         this.color = '#F80B'
@@ -485,12 +486,12 @@ function getRingDistance(a,b=0){
 }
 
 function getApicalConstrictionAmount(x){
-    let gradient = [0, 0.1, 0.15, 0.2, 0.4, 0.7, 0.9, 0.99]
+    let gradient = [0.2, 0.2, 0.22, 0.25, 0.4, 0.7, 0.9, 0.95]
     if(x >= gradient.length) return 1
     return gradient[x]
 }
 
-
+                             
 function setUpConstrictingCells(){
     for(let i = 0; i < sectors; i++){
     let ringDistance = getRingDistance(i)
@@ -498,16 +499,16 @@ function setUpConstrictingCells(){
     for (let j = 0; j < horizontalPartitions; j++){
         edge = cells[i].edges[lateralPartitions + j]
         
-        edge.gradualChange('idealLength', edge.idealLength * constriction, 100);
-        edge.gradualChange('springConstant', edge.springConstant + 0.3,100);
+        edge.gradualChange('idealLength', edge.idealLength * constriction, ramptime);
+        edge.gradualChange('springConstant', edge.springConstant +0.3, ramptime);
     }
-    cells[i].color = `rgb(255, ${constriction*200}, 0)`
+    cells[i].color = `rgb(255, ${constriction * 200}, 0)`
     
     for (let j = 0; j < lateralPartitions; j++){
         edgeA = cells[i].edges[j]; 
         edgeB = cells[i].edges[j+horizontalPartitions+lateralPartitions]; 
-        edgeA.gradualChange('idealLength',edgeA.idealLength * (1 - (0.3 * constriction)), 500);
-        edgeB.gradualChange('idealLength',edgeA.idealLength * (1 - (0.3 * constriction)), 500);
+        edgeA.gradualChange('idealLength',edgeA.idealLength * (1 - (0.3 * constriction)), ramptime, ramptime);
+        edgeB.gradualChange('idealLength',edgeA.idealLength * (1 - (0.3 * constriction)), ramptime, ramptime);
     }
     }
 }
