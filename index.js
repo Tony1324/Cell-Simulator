@@ -84,10 +84,8 @@ function draw() {
     }
     time += deltaTime;
     if(time - previousUpdateTime > 50){
-    chartA.data.labels.push(time);
-    chartA.data.datasets[0].data.push(nodes[0].getDistance())
-    chartA.update()
-    previousUpdateTime = time
+        recordData()
+        previousUpdateTime = time
     }
     document.getElementById("time").innerHTML = `Time: ${time}`
 
@@ -95,23 +93,44 @@ function draw() {
 
 }
 
+let charts = []
 
-let chartA = new Chart(document.getElementById("chartA"), {
-    type: 'line',
-    data: {
-        labels: [],
-        datasets: [{
-            label: 'My Dataset',
-            data: [],
-            pointRadius: 0
-        }]
-    },
-    options: {
-        animation: {
-            duration: 0 // general animation time
-        }
+createChart("Apical Length",()=>nodes[0].getDistance())
+createChart("Apical Volume",()=>cells[0].getArea())
+
+
+function recordData(){
+    for(let {chart, query} of charts){
+        chart.data.labels.push(time);
+        chart.data.datasets[0].data.push(query())
+        chart.update()
     }
-});
+}
+
+function createChart(name, query){
+    const chartElem = document.createElement("canvas")
+    chartElem.id = 'chart' + charts.length
+    document.querySelector("#sidebar").appendChild(chartElem)
+    let chart = new Chart(chartElem, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: name,
+                data: [],
+                pointRadius: 0
+            }]
+        },
+        options: {
+            animation: {
+                duration: 0 // general animation time
+            }
+        }
+    });
+    charts.push({chart:chart, query:query})
+}
+
+
 
 draw()
 setUpConstrictingCells()
