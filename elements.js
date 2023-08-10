@@ -1,3 +1,5 @@
+//Parent class for Cells, Edges, Nodes
+//Contains common setup/useful methods
 class Entity{
     constructor(){
         this.updaters = []
@@ -24,13 +26,12 @@ class Entity{
     }
 }
 
+//EACH VERTEX / CORNER OF THE CELLS ARE A NODE
 class Node extends Entity{
     constructor(pos, type) {
         super()
         this.pos = pos
         this.type = type;
-        this.edges = [];
-        this.cells = []; // Add cells property here
         this.dragged = false;
         this.velocity = new Vector(0,0);
         this.forces = new Object()
@@ -39,11 +40,6 @@ class Node extends Entity{
         this.updaters = [this.dampeningForce, this.collision]
     }
 
-
-    addCell(cell) {
-        this.cells.push(cell);
-    }
-    
     addForce(f, type){
         if(!this.forces[type]){
             this.forces[type] = new Vector(0,0)
@@ -52,23 +48,30 @@ class Node extends Entity{
     }
 
     collision(){
+        //when a point is inside another cell, it is colliding
         for(let i=0; i<cells.length; i++){
             const cell = cells[i]
             if (cell.disableCollision) continue
             if(cell.checkNodeCollide(this)){
+                //find distance of edges to the cell,
+                //the closer an edge is, the more it is "attracted" to leave from that direction
                 let force = new Vector(0,0)
                 let closestDistance = Infinity
                 for(let edge of cell.edges){
                     let dist = edge.distToNode(this)
                     closestDistance = Math.min(dist , closestDistance)
+                    //+3 to avoid division by zero
                     let dir = edge.getNormal().mult(-1/(dist+3) * this.collisionConstant)
                     force.add(dir)
                 }
+                
                 for(let edge of cell.edges){
                     let dist = edge.distToNode(this)
                     let dir = edge.getNormal().mult(-1/(dist+3) * this.collisionConstant)
                     edge.addForce(dir.mult(-1 / force.magnitude * closestDistance), "collision")
                 }
+                //but this means that the repelling force is greatest when it is just touching the cell, when distance to an edge is the smallest
+                //we want to make it so the further you go into a cell, the more it pushes the point out, like a spring
                 force.normalize()
                 force.mult(closestDistance)
                 this.addForce(force, "collision")
@@ -77,6 +80,10 @@ class Node extends Entity{
     }
 
     dampeningForce(){
+        //in the simulation velocity can be thought of as almost 0,
+        //so that nothing as inertia
+        //you can also think of the forces as directly changing position
+        //making dampening a force adds more consistency and logic to the physics
         const dir = Vector.mult(this.velocity, -this.dampeningConstant)
         this.addForce(dir, "dampening")
     }    
@@ -112,6 +119,7 @@ class Node extends Entity{
             if(showForces[type]) arrow(this.pos, Vector.add(this.pos, Vector.mult(this.forces[type], 50)), forceColors[type])
 
         }
+        //occasionally forces sometimes spikes very high
         force.limit(5)
         this.velocity.add(Vector.mult(force, deltaTime));
         this.pos.add(Vector.mult(this.velocity, deltaTime)); 
@@ -119,9 +127,8 @@ class Node extends Entity{
         this.forces = {}
     }
     
+    //mouse dragging
     updatePosition() {
-       
-
         if (!this.dragged) return;
         
         let d = Vector.dist(new Vector(mouse.x-width/2, mouse.y-height/2), center);
@@ -137,6 +144,7 @@ class Node extends Entity{
     }
 }
 
+//Segments just stores 2 nodes, and computes their behaviors between eachother
 class Edge extends Entity {
     constructor(nodeA, nodeB, type) {
         super()
@@ -155,6 +163,8 @@ class Edge extends Entity {
 
     springForce(){
         const diff = this.getLength()-this.idealLength
+        //follows hookes law, but spring constant isn't the k value, but the materials
+        //the shorter an edge/spring is, the stiffer it will be
         let dir = Vector.sub(this.nodeB.pos, this.nodeA.pos).normalize().mult(diff*this.springConstant/this.idealLength)
         this.nodeA.addForce(dir, "spring")
         this.nodeB.addForce(dir.mult(-1), "spring")
@@ -209,13 +219,18 @@ class Cell extends Entity{
     osmosisForce(){
         const area = this.getArea()
         const diff = area - this.idealArea
+        //pushes each edge outwards in the normal direction
+        //the longer the edge, the more force there is
+        //if the edge is divided in two, same amount of total force is appliedk
         for(let edge of this.edges){
             let normal = edge.getNormal()
             normal.mult(diff*this.osmosisConstant*edge.getLength())
             edge.addForce(normal, "osmosis")
         }
     }
+
     stiffness(){
+        //when angle is off, apply force to bend the set of edges back
         const mod = (n,m) => n - (m * Math.floor(n/m));
         const length = this.nodes.length
         for(let i = 0; i<length; i++){
@@ -279,6 +294,10 @@ class Cell extends Entity{
         area /= 2;
         return Math.abs(area);
     }
+
+    //Collision detection
+    //raycasting algorithm for point in polygon
+    //Collision handling is in node class
     checkNodeCollide(node){
         var i = this.nodes.length;
         while (i--) {
@@ -292,10 +311,10 @@ class Cell extends Entity{
 
         for (let edge of this.edges) {
 
-            // get the PVectors at our current position
+            // get the Vectors at our current position
             // this makes our if statement a little cleaner
-            let v1 = edge.nodeA.pos;    // c for "current"
-            let v2 = edge.nodeB.pos;       // n for "next"
+            let v1 = edge.nodeA.pos;
+            let v2 = edge.nodeB.pos;
 
             // compare position, flip 'collision' variable
             // back and forth
