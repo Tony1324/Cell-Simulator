@@ -36,7 +36,7 @@ class Node extends Entity{
         this.velocity = new Vector(0,0);
         this.forces = new Object()
         this.dampeningConstant = 1
-        this.collisionConstant = 0.5
+        this.collisionConstant = 10
         this.updaters = [this.dampeningForce, this.collision]
     }
 
@@ -205,7 +205,7 @@ class Cell extends Entity{
         }
         this.updaters = [this.osmosisForce,this.stiffness]
         this.stiffnessConstant = 2
-        this.osmosisConstant = 0.00005
+        this.osmosisConstant = 0.005
         this.color = '#F80B'
         Object.assign(this, config)
         
@@ -481,7 +481,7 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
     let cell = new Cell([previousVerticalEdges, apicalEdges, firstVerticalEdges, basalEdges].flat(), [previousVerticalEdges.map(e => e.nodeA),apicalEdges.map(e => e.nodeA),firstVerticalEdges.map(e => e.nodeA), basalEdges.map(e => e.nodeA)].flat())
     cells.push(cell)
     
-    cells.push(createRingCell(apicalRing))
+    //cells.push(createRingCell(apicalRing))
     cells.push(createRingCell(basalRing))
     return ({nodes: nodes, edges:edges, cells:cells})
 }
@@ -495,7 +495,7 @@ function createRingCell(nodes){
         edges.push(edge)
     }
      
-    let cell = new Cell(edges, nodes, {stiffnessConstant: 0, osmosisConstant:0.000005, color: "#0000"})
+    let cell = new Cell(edges, nodes, {stiffnessConstant: 0, color: "#0000"})
     cell.disableCollision = true
     return cell 
 }

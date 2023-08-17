@@ -32,7 +32,7 @@ let time = 0;
 let previousUpdateTime = -Infinity //used to time when to save data to charts, once every 50 frames 
 
 //MODEL CREATION
-let embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0.2, largeRadius, smallRadius);
+let embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0.1, largeRadius, smallRadius);
 nodes = embryo.nodes
 edges = embryo.edges
 cells = embryo.cells
@@ -73,7 +73,7 @@ function draw() {
             node.updatePosition(); //only used for mouse dragging
         }
         
-        time += deltaTime;
+        
         
         if (recordGif){ 
             let dataURL = canvas.toDataURL("image/png");
@@ -85,6 +85,7 @@ function draw() {
             recordData()
             previousUpdateTime = time
         }
+        time += deltaTime;
         
         document.getElementById("time").innerHTML = `Time: ${time}`
     }
@@ -94,8 +95,6 @@ function draw() {
 
 //changes additional parameters such as starting constriction, see elements.js
 setUpConstrictingCells() 
-draw()
-
 //TO CREATE A CHART, pass in the name, and a callback which returns info you want to record
 createChart("Apical Depth",()=>nodes[0].getDistance())
 createChart("Apical Length",()=>{
@@ -107,6 +106,9 @@ createChart("Apical Length",()=>{
 })
 createChart("Apical Volume",()=>cells[0].getArea())
 
+draw()
+
+
 
 function recordData(){
     for(let {chart, query} of charts){
@@ -116,10 +118,41 @@ function recordData(){
     }
 }
 
+function saveData(chart){
+    downloadCSV(chartToCSV(chart), chart.data.datasets[0].label + '.csv');
+}
+
+function downloadCSV(csv, filename) {
+    let blob = new Blob([csv], { type: "text/csv" });
+    let url = window.URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', filename);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+
+function chartToCSV(chart){
+    let csv = "time, "+ chart.data.datasets[0].label + "\n"
+    for(let i = 0; i<chart.data.labels.length;i++){
+        let time = chart.data.labels[i]
+        let value = chart.data.datasets[0].data[i]
+        csv += time + "," + value + "\n"
+    }
+    return csv
+}
+
 function createChart(name, query){
     const chartElem = document.createElement("canvas")
     chartElem.id = 'chart' + charts.length
+    const downloadButton = document.createElement("button")
     document.querySelector("#sidebar").appendChild(chartElem)
+    downloadButton.id = "chart" + charts.length
+    downloadButton.innerHTML = "download chart"
+    document.querySelector("#sidebar").appendChild(downloadButton)
     let chart = new Chart(chartElem, {
         type: 'line',
         data: {
@@ -137,24 +170,11 @@ function createChart(name, query){
         }
     });
     charts.push({chart:chart, query:query})
+    downloadButton.onclick = () => {saveData(chart)}
 }
 
 
 //EVERYTHING BELOW IS JUST IMPLEMENTATION DETAILS
-document.getElementById("start-button").addEventListener("click", ()=>{
-    if(animationId !== null) cancelAnimationFrame(animationId);
-    // Any code to reset the state of the simulation
-    frames = [];
-    edges = [];
-    nodes = [];
-    cells = [];
-    let embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0, largeRadius, smallRadius);
-    nodes = embryo.nodes
-    edges = embryo.edges
-    cells = embryo.cells
-    setUpConstrictingCells();
-    draw();
-})
 
 document.getElementById("play-pause-button").addEventListener("click", ()=>{
     if(animationId !== null) {
