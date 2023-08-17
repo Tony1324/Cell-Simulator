@@ -36,7 +36,7 @@ class Node extends Entity{
         this.velocity = new Vector(0,0);
         this.forces = new Object()
         this.dampeningConstant = 1
-        this.collisionConstant = 10
+        this.collisionConstant = 1
         this.updaters = [this.dampeningForce, this.collision]
     }
 
@@ -61,14 +61,14 @@ class Node extends Entity{
                     let dist = edge.distToNode(this)
                     closestDistance = Math.min(dist , closestDistance)
                     //+3 to avoid division by zero
-                    let dir = edge.getNormal().mult(-1/(dist+3) * this.collisionConstant)
+                    let dir = edge.getNormal().mult(-1/(dist+1) * this.collisionConstant)
                     force.add(dir)
                 }
                 
                 for(let edge of cell.edges){
                     let dist = edge.distToNode(this)
-                    let dir = edge.getNormal().mult(-1/(dist+3) * this.collisionConstant)
-                    edge.addForce(dir.mult(-1 / force.magnitude * closestDistance), "collision")
+                    let dir = edge.getNormal().mult(-1/(dist+1) * this.collisionConstant)
+                    edge.addForce(dir.mult(-1 / force.magnitude * (closestDistance+1)), "collision")
                 }
                 //but this means that the repelling force is greatest when it is just touching the cell, when distance to an edge is the smallest
                 //we want to make it so the further you go into a cell, the more it pushes the point out, like a spring
@@ -505,7 +505,7 @@ function getRingDistance(a,b=0){
 }
 
 function getApicalConstrictionAmount(x){
-    let gradient = [0.2, 0.2, 0.22, 0.25, 0.4, 0.7, 0.9, 0.95]
+    let gradient = [0.2, 0.2, 0.2, 0.22, 0.25, 0.4, 0.6, 0.8, 0.9, 0.95]
     if(x >= gradient.length) return 1
     return gradient[x]
 }
