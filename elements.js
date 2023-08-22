@@ -305,10 +305,8 @@ class Cell extends Entity{
     //Collision handling is in node class
     checkNodeCollide(node){
         var i = this.nodes.length;
-        while (i--) {
-            if (this.nodes[i] === node) {
-                return false;
-            }
+        if(this.nodes.includes(node)){
+            return false
         }
 
         let pos = node.pos.copy()
@@ -486,12 +484,12 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
     let cell = new Cell([previousVerticalEdges, apicalEdges, firstVerticalEdges, basalEdges].flat(), [previousVerticalEdges.map(e => e.nodeA),apicalEdges.map(e => e.nodeA),firstVerticalEdges.map(e => e.nodeA), basalEdges.map(e => e.nodeA)].flat())
     cells.push(cell)
     
-    //cells.push(createRingCell(apicalRing))
-    cells.push(createRingCell(basalRing))
+    cells.push(createRingCell(apicalRing, false))
+    cells.push(createRingCell(basalRing, true))
     return ({nodes: nodes, edges:edges, cells:cells})
 }
 
-function createRingCell(nodes){
+function createRingCell(nodes,osmosis){
     let edges = []
     for(let i = 0; i < nodes.length; i++){
         const nodeA = nodes[i]
@@ -500,7 +498,8 @@ function createRingCell(nodes){
         edges.push(edge)
     }
      
-    let cell = new Cell(edges, nodes, {stiffnessConstant: 0, color: "#0000"})
+    let cell = new Cell(edges, nodes, {stiffnessConstant: 0, color: "#0000", osmosisConstant:0.0005})
+    if(!osmosis){cell.osmosisConstant=0}
     cell.disableCollision = true
     return cell 
 }
