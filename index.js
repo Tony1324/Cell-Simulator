@@ -7,7 +7,7 @@ let lateralPartitions = 3;
 let sectors = 80;
 let mouse = new Vector(0,0)
 let ramptime = 500
-let deltaTime = 0.125;
+let deltaTime = 1/8;
 
 let showForces = {
     osmosis: false,

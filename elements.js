@@ -36,8 +36,10 @@ class Node extends Entity{
         this.velocity = new Vector(0,0);
         this.forces = new Object()
         this.dampeningConstant = 1
-        this.collisionConstant = 1
+        this.collisionConstant = 20
         this.updaters = [this.dampeningForce, this.collision]
+        this.cells = []
+        this.edges = []
     }
 
     addForce(f, type){
@@ -53,28 +55,26 @@ class Node extends Entity{
             const cell = cells[i]
             if (cell.disableCollision) continue
             if(cell.checkNodeCollide(this)){
-                //find distance of edges to the cell,
-                //the closer an edge is, the more it is "attracted" to leave from that direction
-                let force = new Vector(0,0)
                 let closestDistance = Infinity
+                let closestEdge
                 for(let edge of cell.edges){
-                    let dist = edge.distToNode(this)
-                    closestDistance = Math.min(dist , closestDistance)
-                    //+3 to avoid division by zero
-                    let dir = edge.getNormal().mult(-1/(dist+1) * this.collisionConstant)
-                    force.add(dir)
+                    //every cell is a closed polygon, therefore, the only edges that a particular node can go through, is the edges of the cell/cells it is currently in
+                    if(this.cells.some((c)=>{
+                        //we can't do edge.cells.includes(c) because there are double edges for each cell, so instead we check if both nodes belong to the cell
+                        return c.nodes.includes(edge.nodeA) && c.nodes.includes(edge.nodeB)
+                    })){
+                        let dist = edge.distToNode(this)
+                        if(dist <= closestDistance){
+                            closestEdge = edge
+                            closestDistance = dist
+                        }
+                    }
+                    
                 }
-                
-                for(let edge of cell.edges){
-                    let dist = edge.distToNode(this)
-                    let dir = edge.getNormal().mult(-1/(dist+1) * this.collisionConstant)
-                    edge.addForce(dir.mult(-1 / force.magnitude * (closestDistance+1)), "collision")
-                }
-                //but this means that the repelling force is greatest when it is just touching the cell, when distance to an edge is the smallest
-                //we want to make it so the further you go into a cell, the more it pushes the point out, like a spring
-                force.normalize()
-                force.mult(closestDistance)
-                this.addForce(force, "collision")
+                if(!closestEdge){continue}
+                let dir = closestEdge.getNormal().mult(-closestDistance * this.collisionConstant)
+                this.addForce(dir, "collision")
+                closestEdge.addForce(dir.mult(-1), "collision")
             }
         }
     }
@@ -149,11 +149,14 @@ class Edge extends Entity {
     constructor(nodeA, nodeB, type) {
         super()
         this.nodeA = nodeA;
+        this.nodeA.edges.push(this)
         this.nodeB = nodeB;
+        this.nodeB.edges.push(this)
         this.type = type;
         this.idealLength = this.getLength()
         this.springConstant = 3
         this.updaters = [this.springForce]
+        this.cells = []
     }
 
     addForce(f, type){
@@ -197,7 +200,9 @@ class Cell extends Entity{
     constructor(edges, nodes, config) {
         super()
         this.edges = edges
+        this.edges.forEach(edge => {edge.cells.push(this)});
         this.nodes = nodes
+        this.nodes.forEach(node => {node.cells.push(this)});
         this.idealArea = this.getArea()
         this.angles = []
         for(let i = 0; i<this.nodes.length; i++){
