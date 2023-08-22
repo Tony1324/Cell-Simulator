@@ -74,7 +74,7 @@ class Node extends Entity{
                 if(!closestEdge){continue}
                 let dir = closestEdge.getNormal().mult(-closestDistance * this.collisionConstant)
                 this.addForce(dir, "collision")
-                closestEdge.addForce(dir.mult(-1), "collision")
+                closestEdge.addForce(dir.mult(-0.5), "collision")
             }
         }
     }
