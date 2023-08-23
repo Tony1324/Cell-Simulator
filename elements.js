@@ -30,6 +30,7 @@ class Entity{
 class Node extends Entity{
     constructor(pos, type) {
         super()
+        this.hovered = false;
         this.pos = pos
         this.type = type;
         this.dragged = false;

@@ -9,6 +9,12 @@ let mouse = new Vector(0,0)
 let ramptime = 500
 let deltaTime = 1/8;
 
+
+let lastHoveredNode = null;
+let hoveredNodeIndex = null;
+let edgeIndexes = [];
+let cellIndexes = [];
+
 let showForces = {
     osmosis: false,
     dampening: false, 
@@ -25,8 +31,6 @@ let cells = [];
 let charts = []
 
 let animationId = null;
-let frames = [];
-let recordGif = false;
 let time = 0;
 
 let previousUpdateTime = -Infinity //used to time when to save data to charts, once every 50 frames 
@@ -42,11 +46,6 @@ cells = embryo.cells
 //THE PLACE FROM WHICH EVERYTHING IS CALCULATED
 //draw is called every frame using requestAnimationFrame
 function draw() {
-    //for the gif
-    if (recordGif){
-        ctx.fillStyle = 'white';
-        ctx.fillRect(-width/2, -height/2, width, height);
-    }
     for(let i = 0; i<20; i++){ //for every frame, main update loop runs 20 times for speed
         ctx.clearRect(-width/2, -height/2, width, height)
         circle(center,largeRadius+1, false, undefined ,  true, 3)
@@ -72,14 +71,15 @@ function draw() {
             node.move();
             node.updatePosition(); //only used for mouse dragging
         }
-        
-        
-        
-        if (recordGif){ 
-            let dataURL = canvas.toDataURL("image/png");
-            frames.push(dataURL);
+        if (hoveredNodeIndex !== null) {
+            ctx.font = "16px Arial"; // Choose font size and family
+            ctx.fillStyle = "black"; // Choose text color
+            ctx.fillText(`Node Index: ${hoveredNodeIndex}`, -100, -20); // Display node index
+            
+            ctx.fillText(`Edges: ${edgeIndexes.filter(index => index !== -1).join(", ")}`, -100, 0);
+            ctx.fillText(`Cells: ${cellIndexes.join(", ")}`, -100, 20); // Display cell indexes
         }
-        
+
         
         if(time - previousUpdateTime >= 50){
             recordData()
@@ -186,11 +186,55 @@ document.getElementById("play-pause-button").addEventListener("click", ()=>{
         document.getElementById("play-pause-button").innerText = "Pause"
     }
 })
-window.addEventListener("mousemove",(e)=>{
+
+window.addEventListener("mousemove", (e) => {
     let pos = canvas.getBoundingClientRect()
     mouse.x = e.pageX - pos.left - document.documentElement.scrollLeft
     mouse.y = e.pageY - pos.top - document.documentElement.scrollTop
-})
+
+    // Check for node hover
+    let nearestNode = null;
+    let nearestDistance = Infinity;
+    
+    for(let node of nodes) {
+        let d = Vector.dist(new Vector(mouse.x-width/2, mouse.y-height/2), node.pos);
+        if (d < 10 && d < nearestDistance) {
+            nearestDistance = d;
+            nearestNode = node;
+        }
+    }
+    
+    // Reset hover state for all nodes
+    for(let node of nodes) {
+        node.hovered = false; 
+    }
+
+    
+if (nearestNode) {
+    if (nearestNode !== lastHoveredNode) {
+        nearestNode.hovered = true;
+        hoveredNodeIndex = nodes.indexOf(nearestNode);
+        lastHoveredNode = nearestNode;
+    }
+
+    edgeIndexes = [];
+    for(let edge of nearestNode.edges) {
+        edgeIndexes.push(edges.indexOf(edge));
+    }
+    
+    cellIndexes = [];
+    for(let cell of nearestNode.cells) {
+        cellIndexes.push(cells.indexOf(cell));
+    }
+} else {
+    hoveredNodeIndex = null;
+    edgeIndexes = [];
+    cellIndexes = [];
+}
+
+    
+});
+
 
 window.addEventListener("mousedown", ()=>{
     let nearestNode = null;
