@@ -75,7 +75,7 @@ class Node extends Entity{
                 if(!closestEdge){continue}
                 let dir = closestEdge.getNormal().mult(-closestDistance * this.collisionConstant)
                 this.addForce(dir, "collision")
-                closestEdge.addForce(dir.mult(-0.5), "collision")
+                closestEdge.addForceAtPoint(dir.mult(-1), this.pos, "collision")
             }
         }
     }
@@ -155,7 +155,7 @@ class Edge extends Entity {
         this.nodeB.edges.push(this)
         this.type = type;
         this.idealLength = this.getLength()
-        this.springConstant = 3
+        this.springConstant = 0.5
         this.updaters = [this.springForce]
         this.cells = []
     }
@@ -163,6 +163,13 @@ class Edge extends Entity {
     addForce(f, type){
         this.nodeA.addForce(f, type)
         this.nodeB.addForce(f, type)
+    }
+
+    addForceAtPoint(f, pos, type){
+        let edgeLocation = Vector.dot(Vector.sub(pos, this.nodeB.pos), Vector.sub(this.nodeA.pos, this.nodeB.pos).normalize()) / this.getLength()
+        if(edgeLocation > 1 || edgeLocation < 0){return}
+        this.nodeA.addForce(Vector.mult(f,edgeLocation), type)
+        this.nodeB.addForce(Vector.mult(f,1-edgeLocation), type)
     }
 
     springForce(){
@@ -210,7 +217,7 @@ class Cell extends Entity{
             this.angles.push(this.getAngle(i))
         }
         this.updaters = [this.osmosisForce,this.stiffness]
-        this.stiffnessConstant = 2
+        this.stiffnessConstant = 8
         this.osmosisConstant = 0.005
         this.color = '#F80B'
         Object.assign(this, config)
@@ -350,6 +357,20 @@ function createEdges(nodes, ...edgeParams){
     return edges
 }
 
+function calcNodePosition(i, sectors, offset, radius){
+    let angle = 2*Math.PI / sectors;
+    let offsetLimit = angle * offset;
+    let point
+    if(i > sectors/2){
+        let theta = i * angle + (Math.random()-0.5) * offsetLimit * 2;
+        point = new Vector(-Math.sin(theta) * radius, Math.cos(theta) * radius)
+    } else {
+        let theta = (sectors - i) * angle + (Math.random()-0.5) * offsetLimit * 2;
+        point = new Vector(Math.sin(theta) * radius, Math.cos(theta) * radius)
+    }
+    // point.rotate(theta)
+    return point
+}
 
 function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, offset, largeRadius, smallRadius){
     let edges = [];
@@ -359,7 +380,6 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
     let apicalRing = [];
 
     let angle = 2*Math.PI / sectors;
-    let offsetLimit = angle * offset;
     let firstLargeNode = null;
     let firstSmallNode = null;
     let firstVerticalEdges = null;
@@ -369,14 +389,9 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
 
     
     for (let i = 0; i < sectors; i++) {
-        let thetaLarge = i * angle + (Math.random()-0.5) * offsetLimit * 2;
-        let thetaSmall = i * angle + (Math.random()-0.5) * offsetLimit * 2;
+        let vLarge = calcNodePosition(i, sectors, offset, largeRadius)
 
-        let vLarge = new Vector(0, largeRadius)
-        vLarge.rotate(thetaLarge)
-
-        let vSmall = new Vector(0, smallRadius)
-        vSmall.rotate(thetaSmall)
+        let vSmall = calcNodePosition(i, sectors, offset, smallRadius)
         
         let verticalNodes = []
         for(let j = 0; j <= lateralPartitions; j++) {
@@ -524,15 +539,15 @@ function setUpConstrictingCells(){
         edge = cells[i].edges[lateralPartitions + j]
         
         edge.gradualChange('idealLength', edge.idealLength * constriction, ramptime);
-        edge.gradualChange('springConstant', edge.springConstant +0.3, ramptime);
+        edge.gradualChange('springConstant', edge.springConstant +3, ramptime);
     }
     cells[i].color = `rgb(255, ${constriction * 200}, 0)`
     
     for (let j = 0; j < lateralPartitions; j++){
         edgeA = cells[i].edges[j]; 
         edgeB = cells[i].edges[j+horizontalPartitions+lateralPartitions]; 
-        edgeA.gradualChange('idealLength',edgeA.idealLength * (1 - (0.3 * constriction)), ramptime, ramptime);
-        edgeB.gradualChange('idealLength',edgeA.idealLength * (1 - (0.3 * constriction)), ramptime, ramptime);
+        edgeA.gradualChange('idealLength',edgeA.idealLength * (1 - (0.5 * constriction)), ramptime, ramptime*0.75);
+        edgeB.gradualChange('idealLength',edgeA.idealLength * (1 - (0.5 * constriction)), ramptime, ramptime*0.75);
     }
     }
 }
