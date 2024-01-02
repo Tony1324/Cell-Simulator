@@ -8,9 +8,6 @@
   <body>
       
       <main>
-        <canvas id="canvas" width="800" height="800"></canvas>
-        
-      </main>
       <div id="sidebar">
         <div id="control-group">
           <button id="start-button" onclick="location.reload()">Restart</button>
@@ -28,7 +25,12 @@
           <input type="checkbox" id="dampening" onclick="showForces[this.id] = this.checked"><label for="dampening">dampening</label>
         </div>
         
+      </div>   
+      <div id="canvas-container">
+        <canvas id="canvas" width="800" height="800"></canvas>
       </div>
+
+    </main>
     <script src="elements.js"></script>
     <script src="canvas.js" defer></script>
     <script src="index.js" defer></script>

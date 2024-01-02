@@ -9,9 +9,6 @@ if (window.devicePixelRatio > 1) {
 
     canvas.width = canvasWidth * window.devicePixelRatio;
     canvas.height = canvasHeight * window.devicePixelRatio;
-    canvas.style.width = canvasWidth + "px";
-    canvas.style.height = canvasHeight + "px";
-
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 }
 
