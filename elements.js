@@ -35,7 +35,8 @@ class Node extends Entity{
         this.type = type;
         this.dragged = false;
         this.velocity = new Vector(0,0);
-        this.forces = new Object()
+        this.forces = {}
+        this.previousForces = {}
         this.dampeningConstant = 1
         this.collisionConstant = 20
         this.updaters = [this.dampeningForce, this.collision]
@@ -49,7 +50,7 @@ class Node extends Entity{
         }
         this.forces[type].add(f)
     }
-
+    
     collision(){
         //when a point is inside another cell, it is colliding
         for(let i=0; i<cells.length; i++){
@@ -82,7 +83,7 @@ class Node extends Entity{
 
     dampeningForce(){
         //in the simulation velocity can be thought of as almost 0,
-        //so that nothing as inertia
+        //so that nothing has inertia
         //you can also think of the forces as directly changing position
         //making dampening a force adds more consistency and logic to the physics
         const dir = Vector.mult(this.velocity, -this.dampeningConstant)
@@ -91,6 +92,16 @@ class Node extends Entity{
 
     draw() {
         circle(this.pos,1,  false, undefined, true, 1);
+        for(let type in this.previousForces){
+            let forceColors = {
+                osmosis: 'red',
+                stiffness: 'blue',
+                spring: 'green',
+                dampening: 'purple',
+                collision: 'magenta'
+            }
+            if(showForces[type]) arrow(this.pos, Vector.add(this.pos, Vector.mult(this.previousForces[type], 50)), forceColors[type])
+        }
     }
     
     mousePressed() {
@@ -110,21 +121,13 @@ class Node extends Entity{
         for(let type in this.forces){
             
             force.add(this.forces[type])
-            let forceColors = {
-                osmosis: 'red',
-                stiffness: 'blue',
-                spring: 'green',
-                dampening: 'purple',
-                collision: 'magenta'
-            }
-            if(showForces[type]) arrow(this.pos, Vector.add(this.pos, Vector.mult(this.forces[type], 50)), forceColors[type])
-
         }
         //occasionally forces sometimes spikes very high
         force.limit(5)
         this.velocity.add(Vector.mult(force, deltaTime));
         this.pos.add(Vector.mult(this.velocity, deltaTime)); 
         this.pos.limit(largeRadius);
+        this.previousForces = this.forces
         this.forces = {}
     }
     

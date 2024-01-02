@@ -69,17 +69,7 @@ function draw() {
             node.update();
             //the move function sums up forces, and calculates change in velocity and position
             node.move();
-            node.updatePosition(); //only used for mouse dragging
         }
-        if (hoveredNodeIndex !== null) {
-            ctx.font = "16px Arial"; // Choose font size and family
-            ctx.fillStyle = "black"; // Choose text color
-            ctx.fillText(`Node Index: ${hoveredNodeIndex}`, -100, -20); // Display node index
-            
-            ctx.fillText(`Edges: ${edgeIndexes.filter(index => index !== -1).join(", ")}`, -100, 0);
-            ctx.fillText(`Cells: ${cellIndexes.join(", ")}`, -100, 20); // Display cell indexes
-        }
-
         
         if(time - previousUpdateTime >= 50){
             recordData()
@@ -89,7 +79,27 @@ function draw() {
         
         document.getElementById("time").innerHTML = `Time: ${time}`
     }
+    for(let cell of cells) {
+        cell.draw()
+    }
     
+    for(let edge of edges) {
+        edge.draw(); 
+    }
+    
+    for(let node of nodes) {
+        node.draw();
+        //the move function sums up forces, and calculates change in velocity and position
+        node.updatePosition(); //only used for mouse dragging
+    }
+    if (hoveredNodeIndex !== null) {
+        ctx.font = "16px Arial"; // Choose font size and family
+        ctx.fillStyle = "black"; // Choose text color
+        ctx.fillText(`Node Index: ${hoveredNodeIndex}`, -100, -20); // Display node index
+        
+        ctx.fillText(`Edges: ${edgeIndexes.filter(index => index !== -1).join(", ")}`, -100, 0);
+        ctx.fillText(`Cells: ${cellIndexes.join(", ")}`, -100, 20); // Display cell indexes
+    }
     animationId = requestAnimationFrame(draw);
 }
 
