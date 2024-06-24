@@ -106,15 +106,17 @@ function draw() {
 //changes additional parameters such as starting constriction, see elements.js
 setUpConstrictingCells() 
 //TO CREATE A CHART, pass in the name, and a callback which returns info you want to record
-createChart("Apical Depth",()=>nodes[0].getDistance())
-createChart("Apical Length",()=>{
+createChart("Invagination Depth",()=>nodes[0].getDistance())
+createChart("Apical-Basal Length",()=>{
     let totalLength = 0
     for(let i = 0; i<lateralPartitions; i++){
         totalLength += cells[0].edges[i].getLength()
     }
     return totalLength
 })
-createChart("Apical Volume",()=>cells[0].getArea())
+createChart("Apical Area",()=>cells[0].edges[0].getDistance())
+createChart("Cell Volume",()=>cells[0].getArea())
+
 
 draw()
 
