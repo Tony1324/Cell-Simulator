@@ -114,9 +114,8 @@ createChart("Apical-Basal Length",()=>{
     }
     return totalLength
 })
-createChart("Apical Area",()=>cells[0].edges[0].getDistance())
+createChart("Apical Area",()=>cells[cells.length - 2].edges[0].getLength())
 createChart("Cell Volume",()=>cells[0].getArea())
-
 
 draw()
 

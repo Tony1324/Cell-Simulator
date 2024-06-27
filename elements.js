@@ -528,7 +528,7 @@ function getRingDistance(a,b=0){
 }
 
 function getApicalConstrictionAmount(x){
-    let gradient = [0.2, 0.2, 0.2, 0.22, 0.25, 0.4, 0.6, 0.8, 0.9, 0.95]
+    let gradient = [0.2, 0.22, 0.28, 0.37, 0.48, 0.6, 0.7, 0.8, 0.86, 0.9]
     if(x >= gradient.length) return 1
     return gradient[x]
 }
