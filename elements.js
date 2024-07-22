@@ -42,6 +42,7 @@ class Node extends Entity{
         this.updaters = [this.dampeningForce, this.collision]
         this.cells = []
         this.edges = []
+        this.adjacentCells = []
     }
 
     addForce(f, type){
@@ -50,12 +51,26 @@ class Node extends Entity{
         }
         this.forces[type].add(f)
     }
+
+    precomputeAdjacentCells(){
+        if(this.adjacentCells.length > 0) return
+        this.cells.forEach(cell => {
+            cell.nodes.forEach(node => {
+                node.cells.forEach(c => {
+                    if(!this.adjacentCells.includes(c) && !this.cells.includes(c)){
+                        this.adjacentCells.push(c)
+                    }
+                })
+            })
+        })
+    }
     
     collision(){
-        //when a point is inside another cell, it is colliding
-        for(let i=0; i<cells.length; i++){
-            const cell = cells[i]
-            if (cell.disableCollision) continue
+    //    when a point is inside another cell, it is colliding
+        this.precomputeAdjacentCells()
+        for(let cell of this.adjacentCells){
+        //for(let cell of cells){
+            if(cell.disableCollision) continue
             if(cell.checkNodeCollide(this)){
                 let closestDistance = Infinity
                 let closestEdge
@@ -71,7 +86,6 @@ class Node extends Entity{
                             closestDistance = dist
                         }
                     }
-                    
                 }
                 if(!closestEdge){continue}
                 let dir = closestEdge.getNormal().mult(-closestDistance * this.collisionConstant)
@@ -315,11 +329,10 @@ class Cell extends Entity{
     //raycasting algorithm for point in polygon
     //Collision handling is in node class
     checkNodeCollide(node){
-        var i = this.nodes.length;
         if(this.nodes.includes(node)){
             return false
         }
-
+        
         let pos = node.pos.copy()
         let collision = false;
 
@@ -528,7 +541,8 @@ function getRingDistance(a,b=0){
 }
 
 function getApicalConstrictionAmount(x){
-    let gradient = [0.2, 0.22, 0.28, 0.37, 0.48, 0.6, 0.7, 0.8, 0.86, 0.9]
+    //let gradient = [0.2, 0.22, 0.28, 0.37, 0.48, 0.6, 0.7, 0.8, 0.86, 0.9]
+    let gradient = [0.2, 0.22, 0.24, 0.30, 0.48, 0.6, 0.8, 0.8, 0.86, 0.9]
     if(x >= gradient.length) return 1
     return gradient[x]
 }
@@ -544,7 +558,7 @@ function setUpConstrictingCells(){
         edge.gradualChange('idealLength', edge.idealLength * constriction, ramptime);
         edge.gradualChange('springConstant', edge.springConstant +3, ramptime);
     }
-    cells[i].color = `rgb(255, ${constriction * 200}, 0)`
+    cells[i].color = `rgb(${255 - constriction * 200}, ${constriction * 200}, ${constriction * 200})`
     
     for (let j = 0; j < lateralPartitions; j++){
         edgeA = cells[i].edges[j]; 

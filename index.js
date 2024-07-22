@@ -36,7 +36,7 @@ let time = 0;
 let previousUpdateTime = -Infinity //used to time when to save data to charts, once every 50 frames 
 
 //MODEL CREATION
-let embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0.1, largeRadius, smallRadius);
+let embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0, largeRadius, smallRadius);
 nodes = embryo.nodes
 edges = embryo.edges
 cells = embryo.cells
