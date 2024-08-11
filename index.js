@@ -8,6 +8,11 @@ let sectors = 80;
 let mouse = new Vector(0,0)
 let ramptime = 500
 let deltaTime = 1/8;
+let springConstant = 0.5;
+let stiffnessConstant = 3;
+let osmosisConstant = 0.005;
+let collisionConstant = 20;
+let gradient = [0.2, 0.22, 0.24, 0.30, 0.48, 0.6, 0.8, 0.8, 0.86, 0.9]
 
 
 let lastHoveredNode = null;
@@ -54,19 +59,21 @@ function draw() {
         //Hierarchy with cells containing edges and nodes, and edges containing nodes
         //each update function calls calculation of forces
         //the forces are not immediately applied, but recorded in the nodes
+        
         for(let cell of cells) {
-            cell.draw()
+            if(i == 0) cell.draw()
             cell.update()
         }
         
         for(let edge of edges) {
-            edge.draw(); 
+            if(i == 0) edge.draw(); 
             edge.update();
         }
         
         for(let node of nodes) {
-            node.draw();
+            if(i == 0)node.draw();
             node.update();
+
             //the move function sums up forces, and calculates change in velocity and position
             node.move();
         }

@@ -1,5 +1,6 @@
 //Parent class for Cells, Edges, Nodes
 //Contains common setup/useful methods
+
 class Entity{
     constructor(){
         this.updaters = []
@@ -38,7 +39,7 @@ class Node extends Entity{
         this.forces = {}
         this.previousForces = {}
         this.dampeningConstant = 1
-        this.collisionConstant = 20
+        this.collisionConstant = collisionConstant
         this.updaters = [this.dampeningForce, this.collision]
         this.cells = []
         this.edges = []
@@ -88,7 +89,7 @@ class Node extends Entity{
                     }
                 }
                 if(!closestEdge){continue}
-                let dir = closestEdge.getNormal().mult(-closestDistance * this.collisionConstant)
+                let dir = closestEdge.getNormal().mult(-Math.min(closestDistance, 0.1) * this.collisionConstant)
                 this.addForce(dir, "collision")
                 closestEdge.addForceAtPoint(dir.mult(-1), this.pos, "collision")
             }
@@ -172,8 +173,8 @@ class Edge extends Entity {
         this.nodeB.edges.push(this)
         this.type = type;
         this.idealLength = this.getLength()
-        this.springConstant = 0.5
         this.updaters = [this.springForce]
+        this.springConstant = springConstant
         this.cells = []
     }
 
@@ -233,12 +234,11 @@ class Cell extends Entity{
         for(let i = 0; i<this.nodes.length; i++){
             this.angles.push(this.getAngle(i))
         }
-        this.updaters = [this.osmosisForce,this.stiffness]
-        this.stiffnessConstant = 8
-        this.osmosisConstant = 0.005
+        this.updaters = [this.osmosisForce, this.stiffness]
+        this.stiffnessConstant = stiffnessConstant
+        this.osmosisConstant = osmosisConstant
         this.color = '#F80B'
         Object.assign(this, config)
-        
     }
 
     getCenter() {
@@ -285,10 +285,11 @@ class Cell extends Entity{
             node.addForce(norm1, "stiffness")
             node.addForce(norm2, "stiffness")
             
-            prev.addForce(norm1.mult(-1), "stiffness")
-            next.addForce(norm2.mult(-1), "stiffness")
+            //prev.addForce(norm1.mult(-1), "stiffness")
+            //next.addForce(norm2.mult(-1), "stiffness")
         }
     }
+
     getAngle(i){
         const mod = (n,m) => n - (m * Math.floor(n/m));
         const length = this.nodes.length
@@ -547,7 +548,6 @@ function getApicalConstrictionAmount(x){
     return gradient[x]
 }
 
-                             
 function setUpConstrictingCells(){
     for(let i = 0; i < sectors; i++){
     let ringDistance = getRingDistance(i)

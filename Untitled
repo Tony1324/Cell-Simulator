@@ -1,0 +1,41 @@
+collision(){
+    for(let i=0; i<cells.length; i++){
+        const cell = cells[i]
+        if (cell.disableCollision) continue
+        if(cell.checkNodeCollide(this)){
+            let closestDistance = Infinity
+            let closestEdge
+            let secondClosestDistance = Infinity
+            let secondClosestEdge
+            for(let edge of cell.edges){
+                let vec1 = Vector.sub(edge.nodeA.pos,edge.nodeB.pos)
+                let vec2 = Vector.sub(this.pos,edge.nodeB.pos)
+                let ang1 = Vector.dot(vec1,vec2)/(vec1.magnitude*vec2.magnitude)
+                let vec3 = Vector.sub(edge.nodeB.pos,edge.nodeA.pos)
+                let vec4 = Vector.sub(this.pos,edge.nodeA.pos)
+                let ang2 = Vector.dot(vec3,vec4)/(vec3.magnitude*vec4.magnitude)
+                if(ang1 < -0.5 || ang2 < -0.5){continue}
+                let dist = edge.distToNode(this)
+                if(dist <= closestDistance){
+                    secondClosestEdge=closestEdge
+                    secondClosestDistance=closestDistance
+                    closestEdge = edge
+                    closestDistance = dist
+                } else if (dist <= secondClosestDistance) {
+                    secondClosestEdge = edge
+                    secondClosestDistance = dist
+                }
+
+            }
+            if(!closestEdge){continue}
+            let dir = closestEdge.getNormal().mult(-closestDistance * this.collisionConstant)
+            this.addForce(dir, "collision")
+            closestEdge.addForceAtPoint(dir.mult(-1), this.pos, "collision")
+            if(!secondClosestEdge){continue}
+            if(secondClosestDistance>closestDistance*1.1){continue}
+            dir = secondClosestEdge.getNormal().mult(-secondClosestDistance * this.collisionConstant)
+            this.addForce(dir, "collision")
+            closestEdge.addForceAtPoint(dir.mult(-1), this.pos, "collision")
+        }
+    }
+}
