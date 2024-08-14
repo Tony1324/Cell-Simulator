@@ -1,18 +1,20 @@
 //CONSTANTS
-let largeRadius = 250;
-let smallRadius = largeRadius * 0.65;
-let center = new Vector(0,0)
-let horizontalPartitions = 1;
-let lateralPartitions = 3;
-let sectors = 80;
-let mouse = new Vector(0,0)
-let ramptime = 500
-let deltaTime = 1/8;
-let springConstant = 0.5;
-let stiffnessConstant = 3;
-let osmosisConstant = 0.005;
-let collisionConstant = 20;
-let gradient = [0.2, 0.22, 0.24, 0.30, 0.48, 0.6, 0.8, 0.8, 0.86, 0.9]
+window.largeRadius = 250;
+window.smallRadius = largeRadius * 0.65;
+window.center = new Vector(0,0)
+window.horizontalPartitions = 1;
+window.lateralPartitions = 3;
+window.sectors = 80;
+window.mouse = new Vector(0,0)
+window.ramptime = 500
+window.deltaTime = 1/8;
+window.springConstant = 0.5;
+window.stiffnessConstant = 3;
+window.osmosisConstant = 0.005;
+window.collisionConstant = 20;
+window.gradient = [0.2, 0.22, 0.24, 0.30, 0.48, 0.6, 0.8, 0.8, 0.86, 0.9]
+
+let runTime = 6000
 
 
 let lastHoveredNode = null;
@@ -40,12 +42,80 @@ let time = 0;
 
 let previousUpdateTime = -Infinity //used to time when to save data to charts, once every 50 frames 
 
-//MODEL CREATION
-let embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0, largeRadius, smallRadius);
-nodes = embryo.nodes
-edges = embryo.edges
-cells = embryo.cells
+let embryo
 
+function setup(){
+    animationId = null;
+    time = 0;
+    previousUpdateTime = -Infinity //used to time when to save data to charts, once every 50 frames 
+
+    charts = []
+
+    document.querySelector("#charts-container").innerHTML = ""
+    //TO CREATE A CHART, pass in the name, and a callback which returns info you want to record
+    createChart("Invagination Depth",()=>nodes[0].getDistance())
+    createChart("Apical-Basal Length",()=>{
+        let totalLength = 0
+        for(let i = 0; i<lateralPartitions; i++){
+            totalLength += cells[0].edges[i].getLength()
+        }
+        return totalLength
+    })
+    createChart("Apical Area",()=>cells[cells.length - 2].edges[0].getLength())
+    createChart("Cell Volume",()=>cells[0].getArea())
+
+    embryo = buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, 0, largeRadius, smallRadius);
+    nodes = embryo.nodes
+    edges = embryo.edges
+    cells = embryo.cells
+
+    //changes additional parameters such as starting constriction, see elements.js
+    setUpConstrictingCells() 
+}
+
+setup()
+
+let parameters = {
+    springConstant: [0.05, 0.1, 0.5, 1, 2, 5, 10],
+    stiffnessConstant: [0.5, 1, 2,3, 5, 10, 20],
+}
+
+function permuteParametersList(parameters){
+    let length = Object.keys(parameters).length
+    if (length == 0){
+        return [{}]
+    }
+    let permutations = []
+    for (let x of parameters[Object.keys(parameters)[0]]){
+        let otherParameters = {...parameters}
+        delete otherParameters[Object.keys(parameters)[0]]
+        let newPermutation = permuteParametersList(otherParameters)
+        let newPermutations = newPermutation.map((perm) => {
+            perm[Object.keys(parameters)[0]] = x
+            return perm
+        })
+        permutations = permutations.concat(newPermutations)
+    }
+    return permutations
+}
+
+let parametersList = permuteParametersList(parameters)
+let parameterIndex = 0
+
+function runParameters(parameters){
+    Object.assign(window, parameters)
+    console.log(parameterIndex)
+    console.log(parameters)
+    setup()
+}
+
+if (parametersList.length > 0){
+    runParameters(parametersList[parameterIndex])
+    parameterIndex++
+}
+
+
+//MODEL CREATION
 
 //MAIN PHYSICS AND RENDER LOOP
 //THE PLACE FROM WHICH EVERYTHING IS CALCULATED
@@ -54,7 +124,7 @@ function draw() {
     for(let i = 0; i<20; i++){ //for every frame, main update loop runs 20 times for speed
         ctx.clearRect(-width/2, -height/2, width, height)
         circle(center,largeRadius+1, false, undefined ,  true, 3)
-        
+
         //Main logic
         //Hierarchy with cells containing edges and nodes, and edges containing nodes
         //each update function calls calculation of forces
@@ -84,7 +154,6 @@ function draw() {
         }
         time += deltaTime;
         
-        document.getElementById("time").innerHTML = `Time: ${time}`
     }
     for(let cell of cells) {
         cell.draw()
@@ -107,24 +176,35 @@ function draw() {
         ctx.fillText(`Edges: ${edgeIndexes.filter(index => index !== -1).join(", ")}`, -100, 0);
         ctx.fillText(`Cells: ${cellIndexes.join(", ")}`, -100, 20); // Display cell indexes
     }
+    document.getElementById("time").innerHTML = `Time: ${time}`
+
+    if(time >= runTime){
+        let imageName = Object.entries(parametersList[parameterIndex-1]).map(([key, value]) => `${key}=${value}`).join("_")
+        downloadCanvas(imageName + ".png")
+        if(parametersList.length > parameterIndex){
+            runParameters(parametersList[parameterIndex])
+            parameterIndex++
+        } else{
+            cancelAnimationFrame(animationId)
+            animationId = null;
+            document.getElementById("play-pause-button").innerText = "Start"
+        }
+    }
+
     animationId = requestAnimationFrame(draw);
 }
 
-//changes additional parameters such as starting constriction, see elements.js
-setUpConstrictingCells() 
-//TO CREATE A CHART, pass in the name, and a callback which returns info you want to record
-createChart("Invagination Depth",()=>nodes[0].getDistance())
-createChart("Apical-Basal Length",()=>{
-    let totalLength = 0
-    for(let i = 0; i<lateralPartitions; i++){
-        totalLength += cells[0].edges[i].getLength()
-    }
-    return totalLength
-})
-createChart("Apical Area",()=>cells[cells.length - 2].edges[0].getLength())
-createChart("Cell Volume",()=>cells[0].getArea())
 
 draw()
+
+function downloadCanvas(name){
+    //saves the canvas as a png
+    var link = document.createElement('a');
+    link.download = name;
+    link.href = document.getElementById('canvas').toDataURL()
+    link.click();
+}
+    
 
 
 
@@ -167,10 +247,10 @@ function createChart(name, query){
     const chartElem = document.createElement("canvas")
     chartElem.id = 'chart' + charts.length
     const downloadButton = document.createElement("button")
-    document.querySelector("#sidebar").appendChild(chartElem)
+    document.querySelector("#charts-container").appendChild(chartElem)
     downloadButton.id = "chart" + charts.length
     downloadButton.innerHTML = "download chart"
-    document.querySelector("#sidebar").appendChild(downloadButton)
+    document.querySelector("#charts-container").appendChild(downloadButton)
     let chart = new Chart(chartElem, {
         type: 'line',
         data: {

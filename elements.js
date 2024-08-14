@@ -285,8 +285,8 @@ class Cell extends Entity{
             node.addForce(norm1, "stiffness")
             node.addForce(norm2, "stiffness")
             
-            //prev.addForce(norm1.mult(-1), "stiffness")
-            //next.addForce(norm2.mult(-1), "stiffness")
+            // prev.addForce(norm1.mult(-1), "stiffness")
+            // next.addForce(norm2.mult(-1), "stiffness")
         }
     }
 
