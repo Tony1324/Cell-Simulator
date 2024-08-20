@@ -1,42 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <link rel="stylesheet" type="text/css" href="style.css">
-    <meta charset="utf-8" />
+<head>
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <meta charset="utf-8" />
 
-  </head>
-  <body>
-      
-      <main>
-      <div id="sidebar">
-        <div id="control-group">
-          <button id="start-button" onclick="setup()">Restart</button>
-          <button id="play-pause-button">Pause</button>
-          <button id="download-button" onclick="saveData()">Download</button>
-        </div>
-        <p id="time">Time: 0</p>
-        <p id="progress"></p>
-        <div>
-          <h3>Forces</h3>
-          <input type="checkbox" id="osmosis" onclick="showForces[this.id] = this.checked"><label for="osmosis">osmosis</label>
-          <input type="checkbox" id="spring" onclick="showForces[this.id] = this.checked"><label for="spring">spring</label>
-          <input type="checkbox" id="stiffness" onclick="showForces[this.id] = this.checked"><label for="stiffness">stiffness</label>
-          <input type="checkbox" id="collision" onclick="showForces[this.id] = this.checked"><label for="collision">collision</label>
-          <input type="checkbox" id="dampening" onclick="showForces[this.id] = this.checked"><label for="dampening">dampening</label>
-        </div>
-        <div id="charts-container">
-          
-        </div>
-        
-      </div>   
-      <div id="canvas-container">
-        <canvas id="canvas" width="800" height="800"></canvas>
-      </div>
+</head>
+<body>
 
-    </main>
-    <script src="elements.js"></script>
-    <script src="canvas.js" defer></script>
-    <script src="index.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  </body>
+<main>
+  <div id="sidebar">
+    <div id="control-group">
+      <button id="start-button" onclick="setup()">Restart</button>
+      <button id="play-pause-button">Pause</button>
+      <button id="download-button" onclick="saveData()">Download</button>
+      <button id="download-latest-json-button">Download Latest JSON</button>
+    </div>
+    <p id="time">Time: 0</p>
+    <p id="progress"></p>
+    <div>
+      <h3>Forces</h3>
+      <input type="checkbox" id="osmosis" onclick="showForces[this.id] = this.checked"><label for="osmosis">osmosis</label>
+      <input type="checkbox" id="spring" onclick="showForces[this.id] = this.checked"><label for="spring">spring</label>
+      <input type="checkbox" id="stiffness" onclick="showForces[this.id] = this.checked"><label for="stiffness">stiffness</label>
+      <input type="checkbox" id="collision" onclick="showForces[this.id] = this.checked"><label for="collision">collision</label>
+      <input type="checkbox" id="dampening" onclick="showForces[this.id] = this.checked"><label for="dampening">dampening</label>
+    </div>
+    <div id="charts-container">
+
+    </div>
+
+  </div>
+  <div id="canvas-container">
+    <canvas id="canvas" width="800" height="800"></canvas>
+  </div>
+
+</main>
+<script src="elements.js"></script>
+<script src="canvas.js" defer></script>
+<script src="index.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</body>
 </html>
