@@ -550,22 +550,24 @@ function getApicalConstrictionAmount(x){
 
 function setUpConstrictingCells(){
     for(let i = 0; i < sectors; i++){
-    let ringDistance = getRingDistance(i)
-    let constriction = getApicalConstrictionAmount(ringDistance)
-    for (let j = 0; j < horizontalPartitions; j++){
-        edge = cells[i].edges[lateralPartitions + j]
+        let ringDistance = getRingDistance(i)
+        let constriction = getApicalConstrictionAmount(ringDistance)
+        for (let j = 0; j < horizontalPartitions; j++){
+            edge = cells[i].edges[lateralPartitions + j]
+            edges.springConstant = apicalConstrictionConstant
+            edge.gradualChange('idealLength', edge.idealLength * constriction, ramptime);
+            edge.gradualChange('springConstant', edge.springConstant +3, ramptime);
+        }
+        cells[i].color = `rgb(${255 - constriction * 200}, ${constriction * 200}, ${constriction * 200})`
         
-        edge.gradualChange('idealLength', edge.idealLength * constriction, ramptime);
-        edge.gradualChange('springConstant', edge.springConstant +3, ramptime);
-    }
-    cells[i].color = `rgb(${255 - constriction * 200}, ${constriction * 200}, ${constriction * 200})`
-    
-    for (let j = 0; j < lateralPartitions; j++){
-        edgeA = cells[i].edges[j]; 
-        edgeB = cells[i].edges[j+horizontalPartitions+lateralPartitions]; 
-        edgeA.gradualChange('idealLength',edgeA.idealLength * (1 - (0.5 * constriction)), ramptime, ramptime*0.75);
-        edgeB.gradualChange('idealLength',edgeA.idealLength * (1 - (0.5 * constriction)), ramptime, ramptime*0.75);
-    }
+        for (let j = 0; j < lateralPartitions; j++){
+            edgeA = cells[i].edges[j]; 
+            edgeB = cells[i].edges[j+horizontalPartitions+lateralPartitions]; 
+            edgesA.springConstant = lateralConstrictionConstant
+            edgesB.springConstant = lateralConstrictionConstant
+            edgeA.gradualChange('idealLength',edgeA.idealLength * (1 - (0.5 * constriction)), ramptime, ramptime*0.75);
+            edgeB.gradualChange('idealLength',edgeA.idealLength * (1 - (0.5 * constriction)), ramptime, ramptime*0.75);
+        }
     }
 }
 
