@@ -26,7 +26,7 @@ let cellIndexes = [];
 
 let showForces = {
     osmosis: false,
-    dampening: false, 
+    dampening: false,
     spring: false,
     collision: false,
     stiffness: false,
@@ -36,20 +36,22 @@ let showForces = {
 let edges = [];
 let nodes = [];
 let cells = [];
+let round = 0; // Initialize round counter
+let jsonDataList = [];
 
 let charts = []
 
 let animationId = null;
 let time = 0;
 
-let previousUpdateTime = -Infinity //used to time when to save data to charts, once every 50 frames 
+let previousUpdateTime = -Infinity //used to time when to save data to charts, once every 50 frames
 
 let embryo
 
 function setup(){
     animationId = null;
     time = 0;
-    previousUpdateTime = -Infinity //used to time when to save data to charts, once every 50 frames 
+    previousUpdateTime = -Infinity //used to time when to save data to charts, once every 50 frames
 
     charts = []
 
@@ -72,7 +74,7 @@ function setup(){
     cells = embryo.cells
 
     //changes additional parameters such as starting constriction, see elements.js
-    setUpConstrictingCells() 
+    setUpConstrictingCells()
 }
 
 setup()
@@ -121,6 +123,7 @@ if (parametersList.length > 0){
 
 //MAIN PHYSICS AND RENDER LOOP
 //THE PLACE FROM WHICH EVERYTHING IS CALCULATED
+
 //draw is called every frame using requestAnimationFrame
 function draw() {
     for(let i = 0; i<20; i++){ //for every frame, main update loop runs 20 times for speed
@@ -131,40 +134,40 @@ function draw() {
         //Hierarchy with cells containing edges and nodes, and edges containing nodes
         //each update function calls calculation of forces
         //the forces are not immediately applied, but recorded in the nodes
-        
+
         for(let cell of cells) {
-            if(i == 0) cell.draw()
+            if(i === 0) cell.draw()
             cell.update()
         }
-        
+
         for(let edge of edges) {
-            if(i == 0) edge.draw(); 
+            if(i === 0) edge.draw();
             edge.update();
         }
-        
+
         for(let node of nodes) {
-            if(i == 0)node.draw();
+            if(i === 0)node.draw();
             node.update();
 
             //the move function sums up forces, and calculates change in velocity and position
             node.move();
         }
-        
+
         if(time - previousUpdateTime >= 50){
             recordData()
             previousUpdateTime = time
         }
         time += deltaTime;
-        
+
     }
     for(let cell of cells) {
         cell.draw()
     }
-    
+
     for(let edge of edges) {
-        edge.draw(); 
+        edge.draw();
     }
-    
+
     for(let node of nodes) {
         node.draw();
         //the move function sums up forces, and calculates change in velocity and position
@@ -174,7 +177,7 @@ function draw() {
         ctx.font = "16px Arial"; // Choose font size and family
         ctx.fillStyle = "black"; // Choose text color
         ctx.fillText(`Node Index: ${hoveredNodeIndex}`, -100, -20); // Display node index
-        
+
         ctx.fillText(`Edges: ${edgeIndexes.filter(index => index !== -1).join(", ")}`, -100, 0);
         ctx.fillText(`Cells: ${cellIndexes.join(", ")}`, -100, 20); // Display cell indexes
     }
@@ -206,17 +209,69 @@ function downloadCanvas(name){
     link.href = document.getElementById('canvas').toDataURL()
     link.click();
 }
-    
+
+// Function to record and save data automatically
+function autoSaveData() {
+
+    let data = {
+        cell: cells.map(cell => cell.getData()),  // Capture current cell data
+        edge: edges.map(edge => edge.getData()),  // Capture current edge data
+        node: nodes.map(node => node.getData())   // Capture current node data
+    };
+    let json = JSON.stringify(data, null, 2);
 
 
-
-function recordData(){
-    for(let {chart, query} of charts){
-        chart.data.labels.push(time);
-        chart.data.datasets[0].data.push(query())
-        chart.update()
-    }
+    // Save data with a unique filename for each round
+    let filename = `data_round_${round}.json`;
+    jsonDataList.push({
+        filename: `data_round_${round}.json`,
+        content: json
+    });
+    round++; // Increment round counter
 }
+
+// Function to record data
+function recordData() {
+    for (let { chart, query } of charts) {
+        chart.data.labels.push(time);
+        chart.data.datasets[0].data.push(query());
+        chart.update();
+    }
+
+    // Auto-save every 100 frames (adjust as needed)
+    autoSaveData();
+}
+
+function downloadLatestJSON() {
+    if (jsonDataList.length === 0) {
+        alert("No data available to download.");
+        return;
+    }
+
+    const zip = new JSZip();
+
+    jsonDataList.forEach((data) => {
+        zip.file(data.filename, data.content);
+    });
+
+    zip.generateAsync({ type: "blob" }).then((content) => {
+        downloadFile('data_files.zip', content, 'application/zip');
+    });
+}
+
+function downloadFile(filename, content, mimeType) {
+    let blob = new Blob([content], { type: mimeType });
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', filename);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 
 function saveData(chart){
     downloadCSV(chartToCSV(chart), chart.data.datasets[0].label + '.csv');
@@ -295,7 +350,7 @@ window.addEventListener("mousemove", (e) => {
     // Check for node hover
     let nearestNode = null;
     let nearestDistance = Infinity;
-    
+
     for(let node of nodes) {
         let d = Vector.dist(new Vector(mouse.x-width/2, mouse.y-height/2), node.pos);
         if (d < 10 && d < nearestDistance) {
@@ -303,44 +358,44 @@ window.addEventListener("mousemove", (e) => {
             nearestNode = node;
         }
     }
-    
+
     // Reset hover state for all nodes
     for(let node of nodes) {
-        node.hovered = false; 
+        node.hovered = false;
     }
 
-    
-if (nearestNode) {
-    if (nearestNode !== lastHoveredNode) {
-        nearestNode.hovered = true;
-        hoveredNodeIndex = nodes.indexOf(nearestNode);
-        lastHoveredNode = nearestNode;
+
+    if (nearestNode) {
+        if (nearestNode !== lastHoveredNode) {
+            nearestNode.hovered = true;
+            hoveredNodeIndex = nodes.indexOf(nearestNode);
+            lastHoveredNode = nearestNode;
+        }
+
+        edgeIndexes = [];
+        for(let edge of nearestNode.edges) {
+            edgeIndexes.push(edges.indexOf(edge));
+        }
+
+        cellIndexes = [];
+        for(let cell of nearestNode.cells) {
+            cellIndexes.push(cells.indexOf(cell));
+        }
+    } else {
+        hoveredNodeIndex = null;
+        edgeIndexes = [];
+        cellIndexes = [];
     }
 
-    edgeIndexes = [];
-    for(let edge of nearestNode.edges) {
-        edgeIndexes.push(edges.indexOf(edge));
-    }
-    
-    cellIndexes = [];
-    for(let cell of nearestNode.cells) {
-        cellIndexes.push(cells.indexOf(cell));
-    }
-} else {
-    hoveredNodeIndex = null;
-    edgeIndexes = [];
-    cellIndexes = [];
-}
 
-    
 });
 
 
 window.addEventListener("mousedown", ()=>{
     let nearestNode = null;
     let nearestDistance = Infinity;
-    
-    
+
+
     for(let node of nodes) {
         let d = Vector.dist(new Vector(mouse.x-width/2, mouse.y-height/2), node.pos);
         if (d < 10 && d < nearestDistance) {
@@ -348,7 +403,7 @@ window.addEventListener("mousedown", ()=>{
             nearestNode = node;
         }
     }
-    
+
     if (nearestNode) {
         nearestNode.mousePressed();
     }
@@ -360,3 +415,6 @@ window.addEventListener("mouseup", ()=>{
         }
     }
 })
+
+document.getElementById('download-latest-json-button').addEventListener('click', downloadLatestJSON);
+

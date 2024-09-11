@@ -65,12 +65,12 @@ class Node extends Entity{
             })
         })
     }
-    
+
     collision(){
-    //    when a point is inside another cell, it is colliding
+        //    when a point is inside another cell, it is colliding
         this.precomputeAdjacentCells()
         for(let cell of this.adjacentCells){
-        //for(let cell of cells){
+            //for(let cell of cells){
             if(cell.disableCollision) continue
             if(cell.checkNodeCollide(this)){
                 let closestDistance = Infinity
@@ -103,7 +103,7 @@ class Node extends Entity{
         //making dampening a force adds more consistency and logic to the physics
         const dir = Vector.mult(this.velocity, -this.dampeningConstant)
         this.addForce(dir, "dampening")
-    }    
+    }
 
     draw() {
         circle(this.pos,1,  false, undefined, true, 1);
@@ -118,13 +118,17 @@ class Node extends Entity{
             if(showForces[type]) arrow(this.pos, Vector.add(this.pos, Vector.mult(this.previousForces[type], 50)), forceColors[type])
         }
     }
-    
+
+    getData() {
+        return this.pos
+    }
+
     mousePressed() {
         if (Vector.dist(new Vector(mouse.x-width/2, mouse.y-height/2), this.pos) < 10) {
             this.dragged = true;
         }
     }
-    
+
     mouseReleased() {
         this.dragged = false;
     }
@@ -134,22 +138,22 @@ class Node extends Entity{
     move(){
         let force = new Vector(0,0)
         for(let type in this.forces){
-            
+
             force.add(this.forces[type])
         }
         //occasionally forces sometimes spikes very high
         force.limit(5)
         this.velocity.add(Vector.mult(force, deltaTime));
-        this.pos.add(Vector.mult(this.velocity, deltaTime)); 
+        this.pos.add(Vector.mult(this.velocity, deltaTime));
         this.pos.limit(largeRadius);
         this.previousForces = this.forces
         this.forces = {}
     }
-    
+
     //mouse dragging
     updatePosition() {
         if (!this.dragged) return;
-        
+
         let d = Vector.dist(new Vector(mouse.x-width/2, mouse.y-height/2), center);
         if(d > largeRadius) {
             let a = Math.atan2(mouse.y-height/2 - center.y, mouse.x-width/2 - center.x);
@@ -205,6 +209,10 @@ class Edge extends Entity {
 
     draw() {
         line(this.nodeA.pos, this.nodeB.pos, true, 1);
+    }
+
+    getData() {
+        return [this.nodeA.pos, this.nodeB.pos]
     }
 
     getNormal(){
@@ -268,23 +276,23 @@ class Cell extends Entity{
             // const diff = angle - this.angles[i]
             const diff = mod((angle - this.angles[i] + Math.PI), 2*Math.PI) - Math.PI
 
-    
+
             const prev = this.nodes[mod(i-1, length)]
             const node = this.nodes[mod(i, length)]
             const next = this.nodes[mod(i+1, length)]
-            
+
             const edge1 = this.edges[i]
             const edge2 = this.edges[mod(i-1, length)]
-            
+
             const norm1 = edge1.getNormal()
             const norm2 = edge2.getNormal()
-            
+
             norm1.mult(this.stiffnessConstant * diff / (edge1.getLength()+3))
             norm2.mult(this.stiffnessConstant * diff / (edge2.getLength()+3))
-            
+
             node.addForce(norm1, "stiffness")
             node.addForce(norm2, "stiffness")
-            
+
             // prev.addForce(norm1.mult(-1), "stiffness")
             // next.addForce(norm2.mult(-1), "stiffness")
         }
@@ -293,15 +301,15 @@ class Cell extends Entity{
     getAngle(i){
         const mod = (n,m) => n - (m * Math.floor(n/m));
         const length = this.nodes.length
-        
+
         const prev = this.nodes[mod(i-1, length)].pos
         const node = this.nodes[mod(i, length)].pos
         const next = this.nodes[mod(i+1, length)].pos
-        
+
         const a = Vector.sub(prev, node).normalize()
         const b = Vector.sub(next, node).normalize()
-        
-        let angle = Math.atan2(Vector.cross(a,b).z, Vector.dot(a,b))  
+
+        let angle = Math.atan2(Vector.cross(a,b).z, Vector.dot(a,b))
         // let angle = Math.atan2(b.y, b.x) - Math.atan2(a.y, a.x)
         if(angle < 0){
             angle+=2*Math.PI
@@ -309,12 +317,16 @@ class Cell extends Entity{
         return angle
     }
 
-    
+
     draw() {
         // now we can draw the cell as a polygon
         polygon(this.nodes.map(n => n.pos), true, this.color , false, 2)
     }
-    
+
+    getData(){
+        return {'pos':this.nodes.map(n => n.pos),'color':this.color}
+    }
+
     getArea() {
         let area = 0;
         for(let i = 0; i < this.nodes.length; i++){
@@ -333,7 +345,7 @@ class Cell extends Entity{
         if(this.nodes.includes(node)){
             return false
         }
-        
+
         let pos = node.pos.copy()
         let collision = false;
 
@@ -347,7 +359,7 @@ class Cell extends Entity{
             // compare position, flip 'collision' variable
             // back and forth
             if (((v1.y >= pos.y && v2.y < pos.y) || (v1.y < pos.y && v2.y >= pos.y)) &&
-                    (pos.x < (v2.x-v1.x)*(pos.y-v1.y) / (v2.y-v1.y)+v1.x)) {
+                (pos.x < (v2.x-v1.x)*(pos.y-v1.y) / (v2.y-v1.y)+v1.x)) {
                 collision = !collision;
             }
         }
@@ -404,12 +416,12 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
     let previousSmallNode = null;
     let previousVerticalNodes = null;
 
-    
+
     for (let i = 0; i < sectors; i++) {
         let vLarge = calcNodePosition(i, sectors, offset, largeRadius)
 
         let vSmall = calcNodePosition(i, sectors, offset, smallRadius)
-        
+
         let verticalNodes = []
         for(let j = 0; j <= lateralPartitions; j++) {
             let t = j / lateralPartitions;
@@ -422,17 +434,17 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
         nodes = nodes.concat(verticalNodes)
         let verticalEdges = createEdges(verticalNodes, "verticalNode")
         edges = edges.concat(verticalEdges)
-        
+
         let apicalEdges, basalEdges
         // create lateral edges between consecutive large and small nodes
         if (previousLargeNode != null && previousSmallNode != null && previousVerticalNodes != null) {
             previousVerticalNodes.reverse()
             let previousVerticalEdges = createEdges(previousVerticalNodes, "verticalNode")
             edges = edges.concat(previousVerticalEdges)
-            
+
             // APICAL EDGES
             let apicalNodes = [previousLargeNode]
-            
+
             for(let j = 1; j < horizontalPartitions; j++) {
                 let t = j / (horizontalPartitions);
                 let vMid = Vector.lerp(previousLargeNode.pos, vLarge, t);
@@ -440,16 +452,16 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
                 apicalNodes.push(ptMid);
                 nodes.push(ptMid)
             }
-            
+
             apicalNodes.push(verticalNodes[0])
-            
+
             apicalEdges = createEdges(apicalNodes, "apicalEdge")
             edges = edges.concat(apicalEdges);
 
             //BASAL EDGES
 
             let basalNodes = [verticalNodes[verticalNodes.length-1]]
-            
+
             for(let j = 1; j < horizontalPartitions; j++) {
                 let t = j / (horizontalPartitions);
                 let vMid = Vector.lerp(vSmall,previousSmallNode.pos, t);
@@ -457,7 +469,7 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
                 basalNodes.push(ptMid);
                 nodes.push(ptMid)
             }
-            
+
             basalNodes.push(previousSmallNode)
             basalEdges = createEdges(basalNodes, "basalEdge")
             edges = edges.concat(basalEdges);
@@ -466,31 +478,31 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
 
             let cell = new Cell([previousVerticalEdges, apicalEdges, verticalEdges, basalEdges].flat(),[previousVerticalEdges.map(e => e.nodeA),apicalEdges.map(e => e.nodeA),verticalEdges.map(e => e.nodeA), basalEdges.map(e => e.nodeA)].flat())
             cells.push(cell)
-            
+
         }
-        
+
         previousLargeNode = verticalNodes[0];
         previousSmallNode = verticalNodes[verticalNodes.length-1];
         previousVerticalNodes = verticalNodes;
 
-        
-        
+
+
         if (i === 0) {
             firstLargeNode = verticalNodes[0];
             firstSmallNode = verticalNodes[verticalNodes.length-1];
             firstVerticalEdges = verticalEdges
         }
     }
-    
+
     previousVerticalNodes.reverse()
     let previousVerticalEdges = createEdges(previousVerticalNodes, "verticalNode")
     edges = edges.concat(previousVerticalEdges)
-    
+
     let apicalEdges, basalEdges
     // Connect the first and last edges
 
     let apicalNodes = [previousLargeNode]
-    
+
     for(let j = 1; j < horizontalPartitions; j++) {
         let t = j / (horizontalPartitions);
         let vMid = Vector.lerp(previousLargeNode.pos, firstLargeNode.pos, t);
@@ -501,7 +513,7 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
     apicalNodes.push(firstLargeNode)
     apicalEdges = createEdges(apicalNodes, "apicalEdge")
     edges = edges.concat(apicalEdges);
-    
+
     let basalNodes = [firstSmallNode]
     for(let j = 1; j < horizontalPartitions; j++) {
         let t = j / (horizontalPartitions);
@@ -516,7 +528,7 @@ function buildEmbryo(center, lateralPartitions, horizontalPartitions, sectors, o
 
     let cell = new Cell([previousVerticalEdges, apicalEdges, firstVerticalEdges, basalEdges].flat(), [previousVerticalEdges.map(e => e.nodeA),apicalEdges.map(e => e.nodeA),firstVerticalEdges.map(e => e.nodeA), basalEdges.map(e => e.nodeA)].flat())
     cells.push(cell)
-    
+
     cells.push(createRingCell(apicalRing, false))
     cells.push(createRingCell(basalRing, true))
     return ({nodes: nodes, edges:edges, cells:cells})
@@ -530,11 +542,11 @@ function createRingCell(nodes,osmosis){
         const edge = new Edge(nodeA, nodeB)
         edges.push(edge)
     }
-     
+
     let cell = new Cell(edges, nodes, {stiffnessConstant: 0, color: "#0000", osmosisConstant:0.0005})
     if(!osmosis){cell.osmosisConstant=0}
     cell.disableCollision = true
-    return cell 
+    return cell
 }
 
 function getRingDistance(a,b=0){
@@ -554,17 +566,14 @@ function setUpConstrictingCells(){
         let constriction = getApicalConstrictionAmount(ringDistance)
         for (let j = 0; j < horizontalPartitions; j++){
             edge = cells[i].edges[lateralPartitions + j]
-            edges.springConstant = apicalConstrictionConstant
             edge.gradualChange('idealLength', edge.idealLength * constriction, ramptime);
             edge.gradualChange('springConstant', edge.springConstant +3, ramptime);
         }
         cells[i].color = `rgb(${255 - constriction * 200}, ${constriction * 200}, ${constriction * 200})`
-        
+
         for (let j = 0; j < lateralPartitions; j++){
-            edgeA = cells[i].edges[j]; 
-            edgeB = cells[i].edges[j+horizontalPartitions+lateralPartitions]; 
-            edgesA.springConstant = lateralConstrictionConstant
-            edgesB.springConstant = lateralConstrictionConstant
+            edgeA = cells[i].edges[j];
+            edgeB = cells[i].edges[j+horizontalPartitions+lateralPartitions];
             edgeA.gradualChange('idealLength',edgeA.idealLength * (1 - (0.5 * constriction)), ramptime, ramptime*0.75);
             edgeB.gradualChange('idealLength',edgeA.idealLength * (1 - (0.5 * constriction)), ramptime, ramptime*0.75);
         }
@@ -660,5 +669,5 @@ class Vector {
         return new Vector(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x)
     }
 
-    
+
 }
