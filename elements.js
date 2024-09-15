@@ -112,6 +112,7 @@ class Node extends Entity{
                 osmosis: 'red',
                 stiffness: 'blue',
                 spring: 'green',
+                constriction: 'orange',
                 dampening: 'purple',
                 collision: 'magenta'
             }
@@ -177,8 +178,9 @@ class Edge extends Entity {
         this.nodeB.edges.push(this)
         this.type = type;
         this.idealLength = this.getLength()
-        this.updaters = [this.springForce]
+        this.updaters = [this.springForce, this.constrictionForce]
         this.springConstant = springConstant
+        this.constrictionConstant = 0
         this.cells = []
     }
 
@@ -201,6 +203,14 @@ class Edge extends Entity {
         let dir = Vector.sub(this.nodeB.pos, this.nodeA.pos).normalize().mult(diff*this.springConstant/this.idealLength)
         this.nodeA.addForce(dir, "spring")
         this.nodeB.addForce(dir.mult(-1), "spring")
+    }
+
+    constrictionForce(){
+        //always attempts to constrict to zero
+        const length = this.getLength()
+        let dir = Vector.sub(this.nodeB.pos, this.nodeA.pos).normalize().mult(length*this.constrictionConstant)
+        this.nodeA.addForce(dir, "constriction")
+        this.nodeB.addForce(dir.mult(-1), "constriction")
     }
 
     getLength(){
@@ -564,18 +574,20 @@ function setUpConstrictingCells(){
     for(let i = 0; i < sectors; i++){
         let ringDistance = getRingDistance(i)
         let constriction = getApicalConstrictionAmount(ringDistance)
+        let _apicalConstrictionConstant = apicalConstrictionConstant * (1-constriction) / constriction
         for (let j = 0; j < horizontalPartitions; j++){
             edge = cells[i].edges[lateralPartitions + j]
-            edge.gradualChange('idealLength', edge.idealLength * constriction, ramptime);
-            edge.gradualChange('springConstant', edge.springConstant +3, ramptime);
+            edge.gradualChange('constrictionConstant', _apicalConstrictionConstant, ramptime);
         }
         cells[i].color = `rgb(${255 - constriction * 200}, ${constriction * 200}, ${constriction * 200})`
 
+        let targetConstriction = 1 - constriction * 0.1
+        let _lateralConstrictionConstant = lateralConstrictionConstant * (1-targetConstriction)/(targetConstriction)
         for (let j = 0; j < lateralPartitions; j++){
             edgeA = cells[i].edges[j];
             edgeB = cells[i].edges[j+horizontalPartitions+lateralPartitions];
-            edgeA.gradualChange('idealLength',edgeA.idealLength * (1 - (0.5 * constriction)), ramptime, ramptime*0.75);
-            edgeB.gradualChange('idealLength',edgeA.idealLength * (1 - (0.5 * constriction)), ramptime, ramptime*0.75);
+            edgeA.gradualChange('constrictionConstant',_lateralConstrictionConstant, ramptime, ramptime*0.75);
+            edgeB.gradualChange('constrictionConstant',_lateralConstrictionConstant, ramptime, ramptime*0.75);
         }
     }
 }

@@ -10,8 +10,8 @@ window.ramptime = 500
 window.deltaTime = 1/8;
 window.springConstant = 0.5;
 window.stiffnessConstant = 3;
-window.apicalConstrictionConstant = 0.5;
-window.lateralConstrictionConstant = 0.5;
+window.apicalConstrictionConstant = 0.3;
+window.lateralConstrictionConstant = 0.1;
 window.osmosisConstant = 0.005;
 window.collisionConstant = 20;
 window.gradient = [0.2, 0.22, 0.24, 0.30, 0.48, 0.6, 0.8, 0.8, 0.86, 0.9]
@@ -28,6 +28,7 @@ let showForces = {
     osmosis: false,
     dampening: false,
     spring: false,
+    constriction: false,
     collision: false,
     stiffness: false,
 }
@@ -80,8 +81,9 @@ function setup(){
 setup()
 
 let parameters = {
-    springConstant: [0.05, 0.1, 0.5, 1, 2, 5, 10],
-    stiffnessConstant: [0.5, 1, 2,3, 5, 10, 20],
+    lateralConstrictionConstant: [0, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5],
+    // springConstant: [0.05, 0.1, 0.5, 1, 2, 5, 10],
+    // stiffnessConstant: [0.5, 1, 2,3, 5, 10, 20],
 }
 
 function permuteParametersList(parameters){
